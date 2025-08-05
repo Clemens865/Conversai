@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Pure - ConversAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Subtle gradient background */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000 70%);
+            z-index: 0;
+        }
+
+        /* Main container */
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        /* KITT Voice Modulator - Minimal and Beautiful */
+        .voice-modulator {
+            display: inline-flex;
+            gap: 40px;
+            padding: 60px;
+            position: relative;
+        }
+
+        .voice-column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .voice-segment {
+            width: 8px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-segment::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, #ff0000, #ff3333);
+            opacity: 0;
+            transform: scaleY(0);
+            transform-origin: bottom;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .voice-segment.active::before {
+            opacity: 1;
+            transform: scaleY(1);
+        }
+
+        .voice-segment.active {
+            box-shadow: 
+                0 0 20px rgba(255, 0, 0, 0.8),
+                inset 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Status text */
+        .status {
+            margin-top: 60px;
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s;
+        }
+
+        .status.active {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Minimal control */
+        .control {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .control:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateX(-50%) scale(1.05);
+        }
+
+        .control.active {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: rgba(255, 0, 0, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 20px rgba(255, 0, 0, 0);
+            }
+        }
+
+        .control svg {
+            width: 24px;
+            height: 24px;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .control:hover svg {
+            opacity: 0.9;
+        }
+
+        .control.active svg {
+            opacity: 1;
+            fill: #ff3333;
+        }
+
+        /* Conversation hints */
+        .conversation {
+            position: absolute;
+            top: 50%;
+            left: 60px;
+            right: 60px;
+            transform: translateY(-50%);
+            display: flex;
+            justify-content: space-between;
+            pointer-events: none;
+        }
+
+        .conversation-text {
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.2);
+            max-width: 300px;
+            line-height: 1.6;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .conversation-text.visible {
+            opacity: 1;
+        }
+
+        .conversation-text.user {
+            text-align: right;
+        }
+
+        .conversation-text.assistant {
+            text-align: left;
+        }
+
+        /* Ambient particles */
+        .particle {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(50px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Ambient particles -->
+    <div class="particle" style="left: 10%; animation: float 20s linear infinite;"></div>
+    <div class="particle" style="left: 30%; animation: float 25s linear infinite 5s;"></div>
+    <div class="particle" style="left: 50%; animation: float 22s linear infinite 10s;"></div>
+    <div class="particle" style="left: 70%; animation: float 28s linear infinite 15s;"></div>
+    <div class="particle" style="left: 90%; animation: float 24s linear infinite 20s;"></div>
+
+    <!-- Conversation hints -->
+    <div class="conversation">
+        <div class="conversation-text assistant">
+            <p id="assistantText"></p>
+        </div>
+        <div class="conversation-text user">
+            <p id="userText"></p>
+        </div>
+    </div>
+
+    <!-- Main container -->
+    <div class="container">
+        <!-- KITT Voice Modulator -->
+        <div class="voice-modulator">
+            <!-- Left Column -->
+            <div class="voice-column" id="left">
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+            </div>
+            
+            <!-- Center Column -->
+            <div class="voice-column" id="center">
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="voice-column" id="right">
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+                <div class="voice-segment"></div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status" id="status">listening</div>
+    </div>
+
+    <!-- Control -->
+    <button class="control" id="control">
+        <svg fill="currentColor" viewBox="0 0 20 20">
+            <path d="M10 3a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+            <path d="M3.055 11H5a5 5 0 0010 0h1.945a7 7 0 11-13.89 0z"/>
+        </svg>
+    </button>
+
+    <script>
+        let isActive = false;
+        let animationFrame;
+        const status = document.getElementById('status');
+        const control = document.getElementById('control');
+        const assistantText = document.getElementById('assistantText');
+        const userText = document.getElementById('userText');
+
+        // Conversation samples
+        const conversations = [
+            {
+                user: "What's the meaning of life?",
+                assistant: "To find purpose in connection and growth."
+            },
+            {
+                user: "Tell me about the stars.",
+                assistant: "Each one is a sun, with worlds we'll never know."
+            },
+            {
+                user: "How do you see the future?",
+                assistant: "Through the lens of infinite possibility."
+            }
+        ];
+
+        function animateVoiceModulator() {
+            const leftSegments = document.querySelectorAll('#left .voice-segment');
+            const centerSegments = document.querySelectorAll('#center .voice-segment');
+            const rightSegments = document.querySelectorAll('#right .voice-segment');
+
+            function updateColumns() {
+                if (!isActive) {
+                    [...leftSegments, ...centerSegments, ...rightSegments].forEach(segment => {
+                        segment.classList.remove('active');
+                    });
+                    return;
+                }
+
+                // Smooth wave-like animation
+                const time = Date.now() / 200;
+                const centerHeight = Math.floor(Math.sin(time) * 3 + 6);
+                const leftHeight = Math.floor(Math.sin(time - 0.5) * 2 + 4);
+                const rightHeight = Math.floor(Math.sin(time + 0.5) * 2 + 4);
+
+                leftSegments.forEach((segment, i) => {
+                    segment.classList.toggle('active', i < leftHeight);
+                });
+                centerSegments.forEach((segment, i) => {
+                    segment.classList.toggle('active', i < centerHeight);
+                });
+                rightSegments.forEach((segment, i) => {
+                    segment.classList.toggle('active', i < rightHeight);
+                });
+
+                animationFrame = requestAnimationFrame(updateColumns);
+            }
+
+            updateColumns();
+        }
+
+        control.addEventListener('click', () => {
+            isActive = !isActive;
+            control.classList.toggle('active', isActive);
+            status.classList.toggle('active', isActive);
+            status.textContent = isActive ? 'speaking' : 'listening';
+            
+            if (isActive) {
+                animateVoiceModulator();
+                // Show random conversation
+                const conv = conversations[Math.floor(Math.random() * conversations.length)];
+                setTimeout(() => {
+                    userText.textContent = conv.user;
+                    document.querySelector('.conversation-text.user').classList.add('visible');
+                }, 500);
+                setTimeout(() => {
+                    assistantText.textContent = conv.assistant;
+                    document.querySelector('.conversation-text.assistant').classList.add('visible');
+                }, 2000);
+            } else {
+                setTimeout(() => {
+                    document.querySelectorAll('.conversation-text').forEach(el => {
+                        el.classList.remove('visible');
+                    });
+                }, 1000);
+                setTimeout(() => {
+                    userText.textContent = '';
+                    assistantText.textContent = '';
+                }, 1500);
+            }
+        });
+
+        // Ambient animation
+        setInterval(() => {
+            if (!isActive && Math.random() > 0.7) {
+                isActive = true;
+                status.textContent = 'thinking';
+                status.classList.add('active');
+                animateVoiceModulator();
+                
+                setTimeout(() => {
+                    isActive = false;
+                    status.textContent = 'listening';
+                    status.classList.remove('active');
+                }, 1000 + Math.random() * 2000);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

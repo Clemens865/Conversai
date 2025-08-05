@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KITT Futuristic V2 - ConversAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .background-effects {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .grid-pattern {
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255, 0, 0, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 0, 0, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: grid-move 30s linear infinite;
+        }
+
+        @keyframes grid-move {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 0, 0, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float-up 15s linear infinite;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Main Container */
+        .main-container {
+            position: relative;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        /* Advanced Scanner System */
+        .scanner-system {
+            height: 100px;
+            background: linear-gradient(to bottom, rgba(255, 0, 0, 0.05) 0%, transparent 100%);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 0, 0, 0.2);
+        }
+
+        .scanner-beam {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%,
+                rgba(255, 0, 0, 0.1) 20%,
+                rgba(255, 0, 0, 0.3) 40%,
+                #ff0000 50%,
+                rgba(255, 0, 0, 0.3) 60%,
+                rgba(255, 0, 0, 0.1) 80%,
+                transparent 100%
+            );
+            animation: scan-advanced 4s ease-in-out infinite;
+            filter: blur(1px);
+        }
+
+        .scanner-beam::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            filter: blur(20px);
+            opacity: 0.5;
+        }
+
+        @keyframes scan-advanced {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        /* Dashboard */
+        .dashboard {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            gap: 40px;
+            width: 100%;
+            max-width: 1600px;
+            height: 100%;
+            max-height: 700px;
+        }
+
+        /* Glass Panels */
+        .glass-panel {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.02) 0%, 
+                rgba(255, 255, 255, 0.01) 100%
+            );
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            inset: -100px;
+            background: radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.1), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .glass-panel:hover::before {
+            opacity: 1;
+        }
+
+        .panel-header {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-header::before {
+            content: '';
+            width: 20px;
+            height: 2px;
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        /* Holographic Buttons */
+        .holo-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.05) 0%, 
+                rgba(255, 0, 0, 0.02) 100%
+            );
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .holo-btn::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: conic-gradient(
+                from 0deg,
+                transparent,
+                rgba(255, 0, 0, 0.4),
+                transparent
+            );
+            animation: rotate 3s linear infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .holo-btn:hover::before {
+            opacity: 1;
+        }
+
+        .holo-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.5);
+        }
+
+        .holo-btn.active {
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.2) 0%, 
+                rgba(255, 0, 0, 0.1) 100%
+            );
+            border-color: #ff0000;
+            color: #ff6666;
+        }
+
+        .holo-btn-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Center Display */
+        .center-display {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Futuristic Voice Modulator */
+        .voice-modulator-container {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-modulator-container::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255, 0, 0, 0.02) 2px,
+                rgba(255, 0, 0, 0.02) 4px
+            );
+            animation: scan-lines 8s linear infinite;
+        }
+
+        @keyframes scan-lines {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(20px); }
+        }
+
+        .voice-modulator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            height: 140px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .voice-column {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .voice-segment {
+            width: 40px;
+            height: 12px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            border-radius: 2px;
+            transition: all 0.1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-segment::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent
+            );
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .voice-segment.active {
+            background: linear-gradient(135deg, #ff0000 0%, #ff3333 100%);
+            border-color: #ff6666;
+            box-shadow: 
+                0 0 20px rgba(255, 0, 0, 0.8),
+                inset 0 0 10px rgba(255, 255, 255, 0.2);
+        }
+
+        .voice-segment.active::before {
+            transform: translateX(100%);
+        }
+
+        /* Holographic Conversation */
+        .conversation-holo {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            overflow-y: auto;
+            flex: 1;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        .conversation-holo::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .conversation-holo::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .conversation-holo::-webkit-scrollbar-thumb {
+            background: rgba(255, 0, 0, 0.3);
+            border-radius: 3px;
+        }
+
+        .message-holo {
+            margin-bottom: 20px;
+            padding: 16px 20px;
+            border-radius: 12px;
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+
+        .message-holo.user {
+            background: linear-gradient(135deg, 
+                rgba(255, 0, 0, 0.08) 0%, 
+                rgba(255, 0, 0, 0.04) 100%
+            );
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            margin-left: 60px;
+        }
+
+        .message-holo.assistant {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.04) 0%, 
+                rgba(255, 255, 255, 0.02) 100%
+            );
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-right: 60px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 5px;
+        }
+
+        /* Control Orb */
+        .control-orb-container {
+            display: flex;
+            justify-content: center;
+            padding: 30px;
+        }
+
+        .control-orb {
+            width: 120px;
+            height: 120px;
+            background: conic-gradient(
+                from 0deg,
+                rgba(255, 0, 0, 0.2),
+                rgba(255, 0, 0, 0.6),
+                rgba(255, 0, 0, 0.2)
+            );
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            animation: orb-rotate 20s linear infinite;
+        }
+
+        @keyframes orb-rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .control-orb::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            background: radial-gradient(circle, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.7));
+            border-radius: 50%;
+            border: 2px solid rgba(255, 0, 0, 0.4);
+        }
+
+        .control-orb-inner {
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.3), transparent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .control-orb:hover .control-orb-inner {
+            transform: scale(1.1);
+            background: radial-gradient(circle, rgba(255, 0, 0, 0.5), transparent);
+        }
+
+        .control-orb.active .control-orb-inner {
+            animation: pulse-glow 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { 
+                transform: scale(1);
+                filter: brightness(1);
+            }
+            50% { 
+                transform: scale(1.2);
+                filter: brightness(1.5);
+            }
+        }
+
+        /* Metrics Display */
+        .metrics-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff0000, transparent);
+            animation: scan-metric 3s ease-in-out infinite;
+        }
+
+        @keyframes scan-metric {
+            0%, 100% { transform: translateX(-100%); }
+            50% { transform: translateX(100%); }
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff6666;
+            text-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+        }
+
+        .metric-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-top: 5px;
+        }
+
+        /* Status Indicators */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .status-indicator.active {
+            color: #00ff88;
+            border-color: rgba(0, 255, 136, 0.3);
+        }
+
+        .status-indicator.warning {
+            color: #ffaa00;
+            border-color: rgba(255, 170, 0, 0.3);
+        }
+
+        .status-indicator.error {
+            color: #ff4444;
+            border-color: rgba(255, 68, 68, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Background Effects -->
+    <div class="background-effects">
+        <div class="grid-pattern"></div>
+        <div class="particle" style="left: 10%; animation-delay: 0s;"></div>
+        <div class="particle" style="left: 30%; animation-delay: 3s;"></div>
+        <div class="particle" style="left: 50%; animation-delay: 6s;"></div>
+        <div class="particle" style="left: 70%; animation-delay: 9s;"></div>
+        <div class="particle" style="left: 90%; animation-delay: 12s;"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Scanner System -->
+        <div class="scanner-system">
+            <div class="scanner-beam"></div>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="dashboard">
+            <div class="dashboard-grid">
+                <!-- Left Panel -->
+                <div class="glass-panel">
+                    <div class="panel-header">Neural Modes</div>
+                    
+                    <button class="holo-btn active">
+                        <span class="holo-btn-icon">🧠</span>
+                        <span>NEURAL SYNC</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">⚡</span>
+                        <span>QUANTUM PROCESS</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">🌐</span>
+                        <span>GLOBAL ANALYSIS</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">🔮</span>
+                        <span>PREDICTIVE</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">🚀</span>
+                        <span>HYPERDRIVE</span>
+                    </button>
+
+                    <div class="metrics-display" style="margin-top: 30px;">
+                        <div class="metric-card">
+                            <div class="metric-value">0.12s</div>
+                            <div class="metric-label">Latency</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">99.8%</div>
+                            <div class="metric-label">Precision</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">∞</div>
+                            <div class="metric-label">Context</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">Q5</div>
+                            <div class="metric-label">Quantum</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Display -->
+                <div class="center-display">
+                    <!-- Voice Modulator -->
+                    <div class="voice-modulator-container">
+                        <div class="voice-modulator">
+                            <!-- Left Column -->
+                            <div class="voice-column" id="left-column">
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                            </div>
+                            <!-- Center Column -->
+                            <div class="voice-column" id="center-column">
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                            </div>
+                            <!-- Right Column -->
+                            <div class="voice-column" id="right-column">
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                                <div class="voice-segment"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Conversation -->
+                    <div class="conversation-holo">
+                        <div class="message-holo assistant">
+                            <div class="message-time">KITT NEURAL INTERFACE • 14:32:15</div>
+                            Neural synchronization complete. All quantum processors online. How may I enhance your reality today?
+                        </div>
+                        <div class="message-holo user">
+                            <div class="message-time">USER • 14:32:28</div>
+                            KITT, analyze the quantum signatures in the latest dataset.
+                        </div>
+                        <div class="message-holo assistant">
+                            <div class="message-time">KITT NEURAL INTERFACE • 14:32:30</div>
+                            Initiating quantum analysis... Detecting anomalous patterns in sectors 7 through 12. Would you like me to run a deep neural scan?
+                        </div>
+                    </div>
+
+                    <!-- Control Orb -->
+                    <div class="control-orb-container">
+                        <div class="control-orb" id="control-orb">
+                            <div class="control-orb-inner">
+                                <svg width="40" height="40" fill="#ff6666" viewBox="0 0 20 20">
+                                    <path d="M10 3a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+                                    <path d="M3.055 11H5a5 5 0 0010 0h1.945a7 7 0 11-13.89 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel -->
+                <div class="glass-panel">
+                    <div class="panel-header">System Matrix</div>
+                    
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">🔐</span>
+                        <span>QUANTUM ENCRYPT</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">📡</span>
+                        <span>NEURAL BROADCAST</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">💾</span>
+                        <span>MEMORY BANK</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">🌌</span>
+                        <span>DIMENSION SHIFT</span>
+                    </button>
+                    <button class="holo-btn">
+                        <span class="holo-btn-icon">⚠️</span>
+                        <span>EMERGENCY PROTOCOL</span>
+                    </button>
+
+                    <div class="status-grid">
+                        <div class="status-indicator active">
+                            <span class="status-dot"></span>
+                            <span>NEURAL NET</span>
+                        </div>
+                        <div class="status-indicator active">
+                            <span class="status-dot"></span>
+                            <span>QUANTUM CPU</span>
+                        </div>
+                        <div class="status-indicator warning">
+                            <span class="status-dot"></span>
+                            <span>ENERGY</span>
+                        </div>
+                        <div class="status-indicator active">
+                            <span class="status-dot"></span>
+                            <span>SHIELDS</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: auto; padding-top: 30px;">
+                        <div style="background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 255, 136, 0.05)); border: 1px solid rgba(0, 255, 136, 0.3); border-radius: 12px; padding: 20px; text-align: center;">
+                            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: rgba(0, 255, 136, 0.8); margin-bottom: 8px;">System Status</div>
+                            <div style="font-size: 20px; font-weight: 700; color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);">QUANTUM OPTIMAL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Futuristic Voice Modulator Animation
+        let isActive = false;
+        let animationFrame;
+
+        function animateVoiceModulator() {
+            const leftSegments = document.querySelectorAll('#left-column .voice-segment');
+            const centerSegments = document.querySelectorAll('#center-column .voice-segment');
+            const rightSegments = document.querySelectorAll('#right-column .voice-segment');
+
+            function updateColumns() {
+                if (!isActive) {
+                    [...leftSegments, ...centerSegments, ...rightSegments].forEach(segment => {
+                        segment.classList.remove('active');
+                    });
+                    return;
+                }
+
+                // More dynamic animation for futuristic feel
+                const time = Date.now() / 100;
+                const centerBase = Math.sin(time * 0.5) * 3 + 6; // 3-9 segments
+                const centerHeight = Math.floor(centerBase + Math.random() * 2);
+                
+                const leftBase = Math.sin(time * 0.7) * 2 + 4; // 2-6 segments
+                const leftHeight = Math.floor(leftBase + Math.random() * 2);
+                
+                const rightBase = Math.sin(time * 0.6) * 2 + 4; // 2-6 segments
+                const rightHeight = Math.floor(rightBase + Math.random() * 2);
+
+                // Update segments with slight delay for wave effect
+                leftSegments.forEach((segment, i) => {
+                    setTimeout(() => {
+                        segment.classList.toggle('active', i < leftHeight);
+                    }, i * 10);
+                });
+                centerSegments.forEach((segment, i) => {
+                    setTimeout(() => {
+                        segment.classList.toggle('active', i < centerHeight);
+                    }, i * 10);
+                });
+                rightSegments.forEach((segment, i) => {
+                    setTimeout(() => {
+                        segment.classList.toggle('active', i < rightHeight);
+                    }, i * 10);
+                });
+
+                animationFrame = requestAnimationFrame(updateColumns);
+            }
+
+            updateColumns();
+        }
+
+        // Control orb interaction
+        const controlOrb = document.getElementById('control-orb');
+        controlOrb.addEventListener('mousedown', () => {
+            isActive = true;
+            controlOrb.classList.add('active');
+            animateVoiceModulator();
+        });
+
+        controlOrb.addEventListener('mouseup', () => {
+            isActive = false;
+            controlOrb.classList.remove('active');
+        });
+
+        // Simulate AI speaking
+        setInterval(() => {
+            if (Math.random() > 0.7 && !isActive) {
+                isActive = true;
+                animateVoiceModulator();
+                setTimeout(() => {
+                    isActive = false;
+                }, 1500 + Math.random() * 2500);
+            }
+        }, 4000);
+    </script>
+</body>
+</html>

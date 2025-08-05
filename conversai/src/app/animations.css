@@ -1,0 +1,470 @@
+/* Advanced Animation System for Voice Modulator */
+
+/* Hardware acceleration optimizations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Color variables for dynamic theming */
+:root {
+  --kitt-red: #ef4444;
+  --kitt-red-glow: rgba(239, 68, 68, 0.8);
+  --kitt-orange: #f97316;
+  --kitt-yellow: #eab308;
+  --kitt-cyan: #06b6d4;
+  --kitt-purple: #8b5cf6;
+  --energy-flow: linear-gradient(45deg, var(--kitt-red), var(--kitt-orange), var(--kitt-yellow));
+  --particle-glow: radial-gradient(circle, rgba(239, 68, 68, 0.8) 0%, transparent 70%);
+}
+
+/* Advanced Voice Bar Animations */
+@keyframes voiceBarPulse {
+  0% { 
+    transform: scaleY(0.1) scaleX(1);
+    filter: hue-rotate(0deg) brightness(0.8);
+  }
+  25% { 
+    transform: scaleY(0.6) scaleX(1.05);
+    filter: hue-rotate(15deg) brightness(1.2);
+  }
+  50% { 
+    transform: scaleY(1) scaleX(1.1);
+    filter: hue-rotate(30deg) brightness(1.5);
+  }
+  75% { 
+    transform: scaleY(0.8) scaleX(1.05);
+    filter: hue-rotate(15deg) brightness(1.2);
+  }
+  100% { 
+    transform: scaleY(0.2) scaleX(1);
+    filter: hue-rotate(0deg) brightness(0.8);
+  }
+}
+
+@keyframes voiceBarSpectrum {
+  0% { 
+    transform: scaleY(0.1);
+    background: linear-gradient(to top, var(--kitt-red), var(--kitt-orange));
+  }
+  20% { 
+    transform: scaleY(0.4);
+    background: linear-gradient(to top, var(--kitt-orange), var(--kitt-yellow));
+  }
+  40% { 
+    transform: scaleY(0.8);
+    background: linear-gradient(to top, var(--kitt-yellow), var(--kitt-cyan));
+  }
+  60% { 
+    transform: scaleY(1);
+    background: linear-gradient(to top, var(--kitt-cyan), var(--kitt-purple));
+  }
+  80% { 
+    transform: scaleY(0.6);
+    background: linear-gradient(to top, var(--kitt-purple), var(--kitt-red));
+  }
+  100% { 
+    transform: scaleY(0.2);
+    background: linear-gradient(to top, var(--kitt-red), var(--kitt-orange));
+  }
+}
+
+@keyframes voiceBarWave {
+  0%, 100% { 
+    transform: scaleY(0.1) rotateX(0deg);
+    opacity: 0.6;
+  }
+  25% { 
+    transform: scaleY(0.8) rotateX(5deg);
+    opacity: 0.9;
+  }
+  50% { 
+    transform: scaleY(1.2) rotateX(0deg);
+    opacity: 1;
+  }
+  75% { 
+    transform: scaleY(0.6) rotateX(-5deg);
+    opacity: 0.8;
+  }
+}
+
+/* Voice Bar Classes */
+.voice-bar {
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: bottom;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.voice-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--particle-glow);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.voice-bar.active::before {
+  opacity: 0.7;
+}
+
+.voice-bar-idle {
+  animation: voiceBarPulse 3s ease-in-out infinite;
+  animation-delay: calc(var(--bar-index) * 0.1s);
+}
+
+.voice-bar-listening {
+  animation: voiceBarSpectrum 0.8s ease-in-out infinite;
+  animation-delay: calc(var(--bar-index) * 0.05s);
+}
+
+.voice-bar-speaking {
+  animation: voiceBarWave 0.6s ease-in-out infinite;
+  animation-delay: calc(var(--bar-index) * 0.03s);
+}
+
+.voice-bar-processing {
+  animation: voiceBarPulse 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--bar-index) * 0.08s);
+  filter: hue-rotate(180deg);
+}
+
+/* Pursuit Mode - High Performance Animations */
+@keyframes pursuitScan {
+  0% {
+    transform: translateX(-100%) skewX(-20deg);
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.8), transparent);
+  }
+  50% {
+    transform: translateX(0%) skewX(0deg);
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 1), rgba(255, 165, 0, 0.8), transparent);
+  }
+  100% {
+    transform: translateX(100%) skewX(20deg);
+    background: linear-gradient(90deg, transparent, rgba(255, 165, 0, 0.8), transparent);
+  }
+}
+
+@keyframes pursuitGlow {
+  0%, 100% {
+    box-shadow: 
+      0 0 20px rgba(239, 68, 68, 0.8),
+      inset 0 0 20px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow: 
+      0 0 40px rgba(239, 68, 68, 1),
+      0 0 80px rgba(255, 165, 0, 0.6),
+      inset 0 0 40px rgba(239, 68, 68, 0.4);
+  }
+}
+
+@keyframes pursuitRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+
+.pursuit-mode {
+  position: relative;
+  overflow: hidden;
+}
+
+.pursuit-mode::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  animation: pursuitScan 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.pursuit-mode::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: var(--kitt-red);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: pursuitRing 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.pursuit-glow {
+  animation: pursuitGlow 2s ease-in-out infinite;
+}
+
+/* Energy Flow Effects */
+@keyframes energyFlow {
+  0% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    background-position: 100% 50%;
+    filter: hue-rotate(90deg);
+  }
+  100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(180deg);
+  }
+}
+
+@keyframes energyPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+
+.energy-flow {
+  background: var(--energy-flow);
+  background-size: 200% 200%;
+  animation: energyFlow 3s ease-in-out infinite;
+}
+
+.energy-pulse {
+  animation: energyPulse 1.5s ease-in-out infinite;
+}
+
+/* Particle System */
+@keyframes particleFloat {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes particleFade {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: var(--kitt-red);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: particleFloat 4s linear infinite;
+}
+
+.particle:nth-child(odd) {
+  animation-duration: 3s;
+  background: var(--kitt-orange);
+}
+
+.particle:nth-child(3n) {
+  animation-duration: 5s;
+  background: var(--kitt-yellow);
+}
+
+.particle-burst {
+  animation: particleFade 0.8s ease-out forwards;
+}
+
+/* Micro-interactions for Buttons */
+@keyframes buttonHover {
+  0% {
+    transform: scale(1) rotate(0deg);
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+  }
+  50% {
+    transform: scale(1.05) rotate(1deg);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+  }
+  100% {
+    transform: scale(1.02) rotate(0deg);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+  }
+}
+
+@keyframes buttonPress {
+  0% {
+    transform: scale(1.02);
+  }
+  50% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes buttonDisabled {
+  0%, 100% {
+    opacity: 0.3;
+    filter: grayscale(100%);
+  }
+  50% {
+    opacity: 0.5;
+    filter: grayscale(80%);
+  }
+}
+
+.btn-micro {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-micro::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.btn-micro:hover {
+  animation: buttonHover 0.6s ease-in-out forwards;
+}
+
+.btn-micro:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+.btn-micro:active {
+  animation: buttonPress 0.2s ease-out;
+}
+
+.btn-micro:disabled {
+  animation: buttonDisabled 2s ease-in-out infinite;
+  cursor: not-allowed;
+}
+
+/* State Transition Effects */
+@keyframes stateTransition {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) rotate(-5deg);
+    filter: blur(2px);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1) rotate(0deg);
+    filter: blur(0px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+    filter: blur(0px);
+  }
+}
+
+.state-transition {
+  animation: stateTransition 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Enhanced Scanner */
+@keyframes scannerAdvanced {
+  0% {
+    left: -30%;
+    width: 20%;
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.8), transparent);
+  }
+  25% {
+    left: 10%;
+    width: 25%;
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 1), rgba(255, 165, 0, 0.6), transparent);
+  }
+  50% {
+    left: 40%;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 165, 0, 0.8), rgba(255, 255, 0, 0.4), transparent);
+  }
+  75% {
+    left: 70%;
+    width: 25%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 0, 0.6), rgba(239, 68, 68, 0.8), transparent);
+  }
+  100% {
+    left: 110%;
+    width: 20%;
+    background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.8), transparent);
+  }
+}
+
+.scanner-advanced {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  animation: scannerAdvanced 2s ease-in-out infinite;
+  filter: blur(0.5px);
+}
+
+/* Responsive optimizations */
+@media (max-width: 768px) {
+  .voice-bar {
+    animation-duration: 0.4s;
+  }
+  
+  .particle {
+    animation-duration: 2s;
+  }
+  
+  .pursuit-mode::before {
+    animation-duration: 1s;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .voice-bar,
+  .particle,
+  .btn-micro,
+  .scanner-advanced,
+  .pursuit-mode::before {
+    animation-duration: 0.1s;
+    animation-iteration-count: 1;
+  }
+  
+  .energy-flow {
+    animation: none;
+    background-position: 50% 50%;
+  }
+}

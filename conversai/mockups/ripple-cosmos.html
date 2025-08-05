@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ripple Cosmos - ConversAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* Cosmic background */
+        .cosmos {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, #0a0a1a 0%, #000 60%);
+            overflow: hidden;
+        }
+
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+
+        /* Main ripple container */
+        .ripple-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Ripple rings */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px solid rgba(100, 200, 255, 0.3);
+            pointer-events: none;
+            animation: ripple-expand 3s ease-out infinite;
+        }
+
+        @keyframes ripple-expand {
+            0% {
+                width: 100px;
+                height: 100px;
+                opacity: 0.8;
+            }
+            100% {
+                width: 600px;
+                height: 600px;
+                opacity: 0;
+            }
+        }
+
+        .ripple:nth-child(2) { animation-delay: 0.5s; }
+        .ripple:nth-child(3) { animation-delay: 1s; }
+        .ripple:nth-child(4) { animation-delay: 1.5s; }
+
+        /* Central orb */
+        .central-orb {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle at 30% 30%, #4facfe 0%, #00f2fe 100%);
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 
+                0 0 60px rgba(79, 172, 254, 0.5),
+                inset 0 0 20px rgba(255, 255, 255, 0.2);
+            animation: breathe 4s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .central-orb::before {
+            content: '';
+            position: absolute;
+            inset: -20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(79, 172, 254, 0.2), transparent);
+            animation: glow-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes glow-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .central-orb:hover {
+            transform: scale(1.1);
+        }
+
+        .central-orb.active {
+            background: radial-gradient(circle at 30% 30%, #ff6b6b 0%, #ee5a24 100%);
+            box-shadow: 
+                0 0 80px rgba(255, 107, 107, 0.6),
+                inset 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+
+        .central-orb.active::before {
+            background: radial-gradient(circle, rgba(255, 107, 107, 0.3), transparent);
+        }
+
+        /* Voice visualization waves */
+        .voice-wave {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .wave-circle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+        }
+
+        .wave-circle.active {
+            animation: wave-pulse 2s ease-out;
+        }
+
+        @keyframes wave-pulse {
+            0% {
+                width: 120px;
+                height: 120px;
+                opacity: 0;
+                border: 2px solid rgba(255, 107, 107, 0.8);
+            }
+            50% {
+                opacity: 0.6;
+            }
+            100% {
+                width: 400px;
+                height: 400px;
+                opacity: 0;
+                border: 1px solid rgba(255, 107, 107, 0);
+            }
+        }
+
+        /* Floating messages */
+        .message-bubble {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 16px 24px;
+            font-size: 14px;
+            line-height: 1.5;
+            max-width: 250px;
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .message-bubble.visible {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .message-bubble.user {
+            top: 20%;
+            right: 10%;
+            background: rgba(79, 172, 254, 0.1);
+            border-color: rgba(79, 172, 254, 0.3);
+        }
+
+        .message-bubble.assistant {
+            bottom: 20%;
+            left: 10%;
+            background: rgba(255, 107, 107, 0.1);
+            border-color: rgba(255, 107, 107, 0.3);
+        }
+
+        /* Constellation connections */
+        .constellation {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .constellation-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(100, 200, 255, 0.3), transparent);
+            transform-origin: left center;
+            opacity: 0;
+            transition: opacity 1s;
+        }
+
+        .constellation-line.active {
+            opacity: 1;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.4);
+            transition: all 0.3s;
+        }
+
+        .status-indicator.active {
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        /* Control hints */
+        .hint {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.3);
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* Particle system */
+        .particle-system {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(100, 200, 255, 0.8), transparent);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Cosmos background -->
+    <div class="cosmos" id="cosmos"></div>
+
+    <!-- Particle system -->
+    <div class="particle-system" id="particleSystem"></div>
+
+    <!-- Constellation -->
+    <div class="constellation" id="constellation"></div>
+
+    <!-- Hint -->
+    <div class="hint">Click the orb to begin</div>
+
+    <!-- Main ripple container -->
+    <div class="ripple-container">
+        <!-- Ripples -->
+        <div class="ripple"></div>
+        <div class="ripple"></div>
+        <div class="ripple"></div>
+        <div class="ripple"></div>
+
+        <!-- Voice waves -->
+        <div class="voice-wave" id="voiceWave"></div>
+
+        <!-- Central orb -->
+        <div class="central-orb" id="centralOrb"></div>
+    </div>
+
+    <!-- Floating messages -->
+    <div class="message-bubble user" id="userMessage">
+        How do we find meaning in an infinite universe?
+    </div>
+    <div class="message-bubble assistant" id="assistantMessage">
+        By creating connections that ripple through space and time.
+    </div>
+
+    <!-- Status -->
+    <div class="status-indicator" id="status">awaiting connection</div>
+
+    <script>
+        const centralOrb = document.getElementById('centralOrb');
+        const status = document.getElementById('status');
+        const userMessage = document.getElementById('userMessage');
+        const assistantMessage = document.getElementById('assistantMessage');
+        const voiceWave = document.getElementById('voiceWave');
+        const cosmos = document.getElementById('cosmos');
+        const constellation = document.getElementById('constellation');
+        const particleSystem = document.getElementById('particleSystem');
+        
+        let isActive = false;
+        let particles = [];
+
+        // Create starfield
+        for (let i = 0; i < 200; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = `${Math.random() * 100}%`;
+            star.style.top = `${Math.random() * 100}%`;
+            star.style.animationDelay = `${Math.random() * 3}s`;
+            star.style.animationDuration = `${3 + Math.random() * 2}s`;
+            cosmos.appendChild(star);
+        }
+
+        // Create constellation lines
+        for (let i = 0; i < 5; i++) {
+            const line = document.createElement('div');
+            line.className = 'constellation-line';
+            line.style.width = `${100 + Math.random() * 200}px`;
+            line.style.left = `${Math.random() * 80}%`;
+            line.style.top = `${Math.random() * 80}%`;
+            line.style.transform = `rotate(${Math.random() * 360}deg)`;
+            constellation.appendChild(line);
+        }
+
+        // Particle class
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = 1;
+                this.element = document.createElement('div');
+                this.element.className = 'particle';
+                particleSystem.appendChild(this.element);
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.01;
+                
+                this.element.style.left = `${this.x}px`;
+                this.element.style.top = `${this.y}px`;
+                this.element.style.opacity = this.life;
+                
+                if (this.life <= 0) {
+                    this.element.remove();
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        // Voice wave animation
+        function createVoiceWave() {
+            const wave = document.createElement('div');
+            wave.className = 'wave-circle active';
+            voiceWave.appendChild(wave);
+            
+            setTimeout(() => {
+                wave.remove();
+            }, 2000);
+        }
+
+        // Particle animation
+        function animateParticles() {
+            particles = particles.filter(particle => particle.update());
+            
+            if (isActive && Math.random() > 0.8) {
+                const rect = centralOrb.getBoundingClientRect();
+                const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 50;
+                const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 50;
+                particles.push(new Particle(x, y));
+            }
+            
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Main interaction
+        centralOrb.addEventListener('click', () => {
+            isActive = !isActive;
+            centralOrb.classList.toggle('active', isActive);
+            status.classList.toggle('active', isActive);
+            
+            if (isActive) {
+                status.textContent = 'connected';
+                
+                // Animate constellation
+                document.querySelectorAll('.constellation-line').forEach((line, i) => {
+                    setTimeout(() => {
+                        line.classList.add('active');
+                    }, i * 200);
+                });
+                
+                // Create voice waves
+                const waveInterval = setInterval(() => {
+                    if (isActive) {
+                        createVoiceWave();
+                    } else {
+                        clearInterval(waveInterval);
+                    }
+                }, 500);
+                
+                // Show messages
+                setTimeout(() => {
+                    userMessage.classList.add('visible');
+                }, 1000);
+                
+                setTimeout(() => {
+                    assistantMessage.classList.add('visible');
+                }, 2500);
+            } else {
+                status.textContent = 'awaiting connection';
+                
+                // Hide everything
+                document.querySelectorAll('.constellation-line').forEach(line => {
+                    line.classList.remove('active');
+                });
+                
+                userMessage.classList.remove('visible');
+                assistantMessage.classList.remove('visible');
+            }
+        });
+
+        // Ambient animation
+        setInterval(() => {
+            if (isActive) {
+                createVoiceWave();
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

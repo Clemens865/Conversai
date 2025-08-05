@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Symphony - ConversAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Neural network background */
+        .neural-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* Central thought bubble */
+        .thought-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Morphing blob */
+        .thought-blob {
+            width: 300px;
+            height: 300px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            animation: morph 8s ease-in-out infinite;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.5s ease;
+        }
+
+        @keyframes morph {
+            0%, 100% {
+                border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+                transform: rotate(0deg);
+            }
+            25% {
+                border-radius: 58% 42% 75% 25% / 76% 46% 54% 24%;
+                transform: rotate(90deg);
+            }
+            50% {
+                border-radius: 50% 50% 33% 67% / 55% 27% 73% 45%;
+                transform: rotate(180deg);
+            }
+            75% {
+                border-radius: 33% 67% 58% 42% / 63% 68% 32% 37%;
+                transform: rotate(270deg);
+            }
+        }
+
+        .thought-blob::before {
+            content: '';
+            position: absolute;
+            inset: -50px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.4), transparent);
+            filter: blur(40px);
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .thought-blob.active {
+            background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
+            animation-duration: 2s;
+        }
+
+        /* Inner content */
+        .thought-content {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        /* Voice frequency display */
+        .frequency-display {
+            display: flex;
+            gap: 3px;
+            height: 60px;
+            align-items: flex-end;
+        }
+
+        .frequency-bar {
+            width: 3px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 1.5px;
+            transition: height 0.1s ease-out;
+            min-height: 3px;
+        }
+
+        /* Synaptic connections */
+        .synapse {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(to right, transparent, rgba(102, 126, 234, 0.8), transparent);
+            transform-origin: left center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .synapse.active {
+            opacity: 1;
+            animation: synapse-fire 1s ease-out;
+        }
+
+        @keyframes synapse-fire {
+            0% {
+                background: linear-gradient(to right, transparent, rgba(245, 87, 108, 1), transparent);
+                filter: brightness(2);
+            }
+            100% {
+                background: linear-gradient(to right, transparent, rgba(102, 126, 234, 0.3), transparent);
+                filter: brightness(1);
+            }
+        }
+
+        /* Floating thoughts */
+        .thought {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 20px 28px;
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 280px;
+            opacity: 0;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+        }
+
+        .thought.visible {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .thought.user {
+            top: 15%;
+            right: 15%;
+            background: rgba(102, 126, 234, 0.05);
+            border-color: rgba(102, 126, 234, 0.2);
+        }
+
+        .thought.assistant {
+            bottom: 15%;
+            left: 15%;
+            background: rgba(245, 87, 108, 0.05);
+            border-color: rgba(245, 87, 108, 0.2);
+        }
+
+        .thought-meta {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Neural nodes */
+        .neural-node {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .neural-node.active {
+            opacity: 1;
+            animation: node-pulse 1s ease-out;
+        }
+
+        @keyframes node-pulse {
+            0% {
+                transform: scale(1);
+                background: radial-gradient(circle, rgba(245, 87, 108, 1), transparent);
+            }
+            50% {
+                transform: scale(1.5);
+            }
+            100% {
+                transform: scale(1);
+                background: radial-gradient(circle, rgba(102, 126, 234, 0.8), transparent);
+            }
+        }
+
+        /* Control interface */
+        .control-interface {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 20;
+        }
+
+        .control-button {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: conic-gradient(from 0deg, transparent, rgba(102, 126, 234, 0.5), transparent);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s;
+            animation: rotate 3s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .control-button:hover {
+            border-color: rgba(102, 126, 234, 0.5);
+            transform: scale(1.05);
+        }
+
+        .control-button:hover::before {
+            opacity: 1;
+        }
+
+        .control-button.active {
+            background: rgba(102, 126, 234, 0.1);
+            border-color: rgba(245, 87, 108, 0.5);
+        }
+
+        .control-button svg {
+            width: 28px;
+            height: 28px;
+            fill: rgba(255, 255, 255, 0.6);
+            z-index: 1;
+            position: relative;
+        }
+
+        .control-button.active svg {
+            fill: rgba(245, 87, 108, 0.9);
+        }
+
+        .status-text {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, 0.4);
+            transition: all 0.3s;
+        }
+
+        .status-text.active {
+            color: rgba(102, 126, 234, 0.9);
+            text-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        /* Ambient particles */
+        .ambient-particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(102, 126, 234, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: drift 20s linear infinite;
+        }
+
+        @keyframes drift {
+            0% {
+                transform: translate(0, 100vh);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translate(100px, -100vh);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Neural network canvas -->
+    <canvas class="neural-canvas" id="neuralCanvas"></canvas>
+
+    <!-- Ambient particles -->
+    <div class="ambient-particle" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="ambient-particle" style="left: 20%; animation-delay: 4s;"></div>
+    <div class="ambient-particle" style="left: 30%; animation-delay: 8s;"></div>
+    <div class="ambient-particle" style="left: 40%; animation-delay: 12s;"></div>
+    <div class="ambient-particle" style="left: 50%; animation-delay: 16s;"></div>
+    <div class="ambient-particle" style="left: 60%; animation-delay: 2s;"></div>
+    <div class="ambient-particle" style="left: 70%; animation-delay: 6s;"></div>
+    <div class="ambient-particle" style="left: 80%; animation-delay: 10s;"></div>
+    <div class="ambient-particle" style="left: 90%; animation-delay: 14s;"></div>
+
+    <!-- Neural nodes container -->
+    <div id="nodesContainer"></div>
+
+    <!-- Synapses container -->
+    <div id="synapsesContainer"></div>
+
+    <!-- Central thought bubble -->
+    <div class="thought-center">
+        <div class="thought-blob" id="thoughtBlob">
+            <div class="thought-content">
+                <div class="frequency-display" id="frequencyDisplay">
+                    <!-- Frequency bars will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating thoughts -->
+    <div class="thought user" id="userThought">
+        <div class="thought-meta">Human</div>
+        <p>What does it mean to understand?</p>
+    </div>
+    <div class="thought assistant" id="assistantThought">
+        <div class="thought-meta">Neural Response</div>
+        <p>Understanding is the symphony of connections forming patterns of meaning.</p>
+    </div>
+
+    <!-- Control interface -->
+    <div class="control-interface">
+        <button class="control-button" id="controlButton">
+            <svg viewBox="0 0 20 20">
+                <path d="M10 3a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+                <path d="M3.055 11H5a5 5 0 0010 0h1.945a7 7 0 11-13.89 0z"/>
+            </svg>
+        </button>
+        <div class="status-text" id="statusText">neural rest</div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('neuralCanvas');
+        const ctx = canvas.getContext('2d');
+        const thoughtBlob = document.getElementById('thoughtBlob');
+        const controlButton = document.getElementById('controlButton');
+        const statusText = document.getElementById('statusText');
+        const userThought = document.getElementById('userThought');
+        const assistantThought = document.getElementById('assistantThought');
+        const frequencyDisplay = document.getElementById('frequencyDisplay');
+        const nodesContainer = document.getElementById('nodesContainer');
+        const synapsesContainer = document.getElementById('synapsesContainer');
+        
+        let isActive = false;
+        let nodes = [];
+        let connections = [];
+        
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Create frequency bars
+        for (let i = 0; i < 30; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'frequency-bar';
+            bar.style.height = '3px';
+            frequencyDisplay.appendChild(bar);
+        }
+
+        // Neural node class
+        class NeuralNode {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.connections = [];
+                this.active = false;
+                this.radius = 3;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+            }
+
+            draw() {
+                if (this.active) {
+                    ctx.fillStyle = 'rgba(245, 87, 108, 0.8)';
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = 'rgba(245, 87, 108, 0.5)';
+                } else {
+                    ctx.fillStyle = 'rgba(102, 126, 234, 0.3)';
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Create neural nodes
+        for (let i = 0; i < 50; i++) {
+            nodes.push(new NeuralNode(
+                Math.random() * canvas.width,
+                Math.random() * canvas.height
+            ));
+        }
+
+        // Create DOM nodes for interaction
+        nodes.forEach((node, i) => {
+            const domNode = document.createElement('div');
+            domNode.className = 'neural-node';
+            domNode.id = `node-${i}`;
+            nodesContainer.appendChild(domNode);
+        });
+
+        // Animation loop
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Update and draw nodes
+            nodes.forEach((node, i) => {
+                node.update();
+                
+                // Draw connections
+                nodes.forEach((otherNode, j) => {
+                    if (i < j) {
+                        const distance = Math.sqrt(
+                            Math.pow(node.x - otherNode.x, 2) +
+                            Math.pow(node.y - otherNode.y, 2)
+                        );
+                        
+                        if (distance < 150) {
+                            ctx.strokeStyle = `rgba(102, 126, 234, ${0.1 * (1 - distance / 150)})`;
+                            if (node.active && otherNode.active) {
+                                ctx.strokeStyle = `rgba(245, 87, 108, ${0.3 * (1 - distance / 150)})`;
+                            }
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(node.x, node.y);
+                            ctx.lineTo(otherNode.x, otherNode.y);
+                            ctx.stroke();
+                        }
+                    }
+                });
+                
+                node.draw();
+                
+                // Update DOM node position
+                const domNode = document.getElementById(`node-${i}`);
+                domNode.style.left = `${node.x}px`;
+                domNode.style.top = `${node.y}px`;
+                domNode.classList.toggle('active', node.active);
+            });
+            
+            // Animate frequency bars
+            if (isActive) {
+                const bars = frequencyDisplay.querySelectorAll('.frequency-bar');
+                bars.forEach((bar, i) => {
+                    const height = Math.sin(Date.now() / 200 + i * 0.2) * 30 + 30;
+                    bar.style.height = `${height}px`;
+                });
+            } else {
+                const bars = frequencyDisplay.querySelectorAll('.frequency-bar');
+                bars.forEach(bar => {
+                    bar.style.height = '3px';
+                });
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Neural activation
+        function activateNeuralNetwork() {
+            // Randomly activate nodes
+            nodes.forEach(node => {
+                node.active = Math.random() > 0.7;
+            });
+            
+            // Create synaptic connections
+            for (let i = 0; i < 5; i++) {
+                const node1 = nodes[Math.floor(Math.random() * nodes.length)];
+                const node2 = nodes[Math.floor(Math.random() * nodes.length)];
+                
+                const synapse = document.createElement('div');
+                synapse.className = 'synapse active';
+                const angle = Math.atan2(node2.y - node1.y, node2.x - node1.x);
+                const distance = Math.sqrt(
+                    Math.pow(node2.x - node1.x, 2) +
+                    Math.pow(node2.y - node1.y, 2)
+                );
+                
+                synapse.style.width = `${distance}px`;
+                synapse.style.left = `${node1.x}px`;
+                synapse.style.top = `${node1.y}px`;
+                synapse.style.transform = `rotate(${angle}rad)`;
+                
+                synapsesContainer.appendChild(synapse);
+                
+                setTimeout(() => {
+                    synapse.remove();
+                }, 1000);
+            }
+        }
+
+        // Control interaction
+        controlButton.addEventListener('click', () => {
+            isActive = !isActive;
+            controlButton.classList.toggle('active', isActive);
+            statusText.classList.toggle('active', isActive);
+            thoughtBlob.classList.toggle('active', isActive);
+            
+            if (isActive) {
+                statusText.textContent = 'neural symphony';
+                
+                // Start neural activation
+                const activationInterval = setInterval(() => {
+                    if (isActive) {
+                        activateNeuralNetwork();
+                    } else {
+                        clearInterval(activationInterval);
+                        nodes.forEach(node => node.active = false);
+                    }
+                }, 500);
+                
+                // Show thoughts
+                setTimeout(() => {
+                    userThought.classList.add('visible');
+                }, 800);
+                
+                setTimeout(() => {
+                    assistantThought.classList.add('visible');
+                }, 2000);
+            } else {
+                statusText.textContent = 'neural rest';
+                nodes.forEach(node => node.active = false);
+                userThought.classList.remove('visible');
+                assistantThought.classList.remove('visible');
+            }
+        });
+
+        // Blob interaction
+        thoughtBlob.addEventListener('click', () => {
+            controlButton.click();
+        });
+    </script>
+</body>
+</html>

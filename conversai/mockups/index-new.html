@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConversAI Design Collection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+            background: #000;
+            color: #fff;
+            min-height: 100vh;
+            padding: 60px 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        h1 {
+            font-size: 48px;
+            font-weight: 300;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.6);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .designs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .design-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .design-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(102, 126, 234, 0.1), transparent 50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .design-card:hover::before {
+            opacity: 1;
+        }
+
+        .design-card:hover {
+            transform: translateY(-8px);
+            border-color: rgba(102, 126, 234, 0.3);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(102, 126, 234, 0.1);
+        }
+
+        .design-preview {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            object-position: center;
+            background: #000;
+        }
+
+        .design-info {
+            padding: 32px;
+        }
+
+        .design-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+
+        .design-description {
+            color: rgba(255, 255, 255, 0.6);
+            line-height: 1.6;
+            margin-bottom: 24px;
+            font-size: 15px;
+        }
+
+        .design-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .tag {
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+
+        .view-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            text-decoration: none;
+            color: white;
+            font-weight: 500;
+            font-size: 15px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(-100%);
+            transition: transform 0.3s;
+        }
+
+        .view-button:hover::before {
+            transform: translateX(0);
+        }
+
+        .view-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+
+        .view-button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Special card styles */
+        .design-card.minimal {
+            background: rgba(255, 0, 0, 0.02);
+            border-color: rgba(255, 0, 0, 0.1);
+        }
+
+        .design-card.minimal:hover {
+            border-color: rgba(255, 0, 0, 0.3);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(255, 0, 0, 0.1);
+        }
+
+        .design-card.minimal .view-button {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+        }
+
+        .design-card.cosmic {
+            background: rgba(79, 172, 254, 0.02);
+            border-color: rgba(79, 172, 254, 0.1);
+        }
+
+        .design-card.cosmic:hover {
+            border-color: rgba(79, 172, 254, 0.3);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(79, 172, 254, 0.1);
+        }
+
+        .design-card.cosmic .view-button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .design-card.neural {
+            background: rgba(245, 87, 108, 0.02);
+            border-color: rgba(245, 87, 108, 0.1);
+        }
+
+        .design-card.neural:hover {
+            border-color: rgba(245, 87, 108, 0.3);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 60px rgba(245, 87, 108, 0.1);
+        }
+
+        .design-card.neural .view-button {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .collection-divider {
+            text-align: center;
+            margin: 80px 0;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .collection-divider::before,
+        .collection-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: calc(50% - 100px);
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .collection-divider::before {
+            left: 0;
+        }
+
+        .collection-divider::after {
+            right: 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>ConversAI Design Collection</h1>
+        <p class="subtitle">Innovative interfaces for next-generation conversational AI</p>
+    </div>
+
+    <div class="collection-divider">Latest Designs</div>
+
+    <div class="designs-grid">
+        <!-- Minimal Pure -->
+        <div class="design-card minimal" onclick="window.open('minimal-pure.html', '_blank')">
+            <iframe class="design-preview" src="minimal-pure.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">Minimal Pure</h2>
+                <p class="design-description">
+                    The essence of KITT distilled to its purest form. Features the iconic 3-column voice modulator floating in space, creating a zen-like interaction experience.
+                </p>
+                <div class="design-tags">
+                    <span class="tag">Minimalist</span>
+                    <span class="tag">KITT Voice</span>
+                    <span class="tag">Ambient</span>
+                </div>
+                <a href="minimal-pure.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Ripple Cosmos -->
+        <div class="design-card cosmic" onclick="window.open('ripple-cosmos.html', '_blank')">
+            <iframe class="design-preview" src="ripple-cosmos.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">Ripple Cosmos</h2>
+                <p class="design-description">
+                    Conversations create ripples in the fabric of space. Features a cosmic orb that sends waves through a starfield, representing the impact of each interaction.
+                </p>
+                <div class="design-tags">
+                    <span class="tag">Cosmic</span>
+                    <span class="tag">Ripple Effects</span>
+                    <span class="tag">Interactive</span>
+                </div>
+                <a href="ripple-cosmos.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- Neural Symphony -->
+        <div class="design-card neural" onclick="window.open('neural-symphony.html', '_blank')">
+            <iframe class="design-preview" src="neural-symphony.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">Neural Symphony</h2>
+                <p class="design-description">
+                    AI thoughts visualized as neural pathways firing in real-time. Features a morphing thought bubble and synaptic connections that represent the AI's cognitive processes.
+                </p>
+                <div class="design-tags">
+                    <span class="tag">Neural Network</span>
+                    <span class="tag">Organic</span>
+                    <span class="tag">Morphing</span>
+                </div>
+                <a href="neural-symphony.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="collection-divider">Previous Concepts</div>
+
+    <div class="designs-grid">
+        <!-- KITT Classic V2 -->
+        <div class="design-card" onclick="window.open('kitt-classic-v2.html', '_blank')">
+            <iframe class="design-preview" src="kitt-classic-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">KITT Classic V2</h2>
+                <p class="design-description">
+                    Modern interpretation of the classic KITT dashboard with AI-focused controls and the authentic 3-column voice modulator.
+                </p>
+                <a href="kitt-classic-v2.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- KITT Futuristic V2 -->
+        <div class="design-card" onclick="window.open('kitt-futuristic-v2.html', '_blank')">
+            <iframe class="design-preview" src="kitt-futuristic-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">KITT Futuristic V2</h2>
+                <p class="design-description">
+                    Next-generation KITT interface with glass morphism, holographic elements, and neural network visualization.
+                </p>
+                <a href="kitt-futuristic-v2.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <!-- AI Premium V2 -->
+        <div class="design-card" onclick="window.open('ai-premium-v2.html', '_blank')">
+            <iframe class="design-preview" src="ai-premium-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="design-info">
+                <h2 class="design-title">Premium AI Interface V2</h2>
+                <p class="design-description">
+                    World-class conversational AI interface with sophisticated design language and professional dashboard layout.
+                </p>
+                <a href="ai-premium-v2.html" class="view-button" target="_blank">
+                    View Design
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Click any design to experience it in full screen</p>
+    </div>
+
+    <script>
+        // Mouse tracking for gradient effect
+        const cards = document.querySelectorAll('.design-card');
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                card.style.setProperty('--mouse-x', `${x}%`);
+                card.style.setProperty('--mouse-y', `${y}%`);
+            });
+        });
+    </script>
+</body>
+</html>

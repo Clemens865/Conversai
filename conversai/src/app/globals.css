@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
+  --kitt-red: 239, 68, 68;
+  --kitt-red-glow: rgba(239, 68, 68, 0.8);
+  --kitt-orange: 247, 115, 22;
+  --kitt-yellow: 234, 179, 8;
+  --kitt-cyan: 6, 182, 212;
+  --kitt-purple: 139, 92, 246;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(0, 0, 0);
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  overflow: hidden; /* Match design spec - prevent scrolling */
+}
+
+/* KITT Theme Enhancements */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--kitt-red)) rgb(31, 41, 55);
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgb(31, 41, 55);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(var(--kitt-red));
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(220, 38, 38);
+}
+
+/* Enhanced Glow effects for interactive elements */
+@keyframes redGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(var(--kitt-red), 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(var(--kitt-red), 0.8);
+  }
+}
+
+@keyframes pulsatingGlow {
+  0%, 100% {
+    box-shadow: 
+      0 0 5px rgba(var(--kitt-red), 0.5),
+      inset 0 0 5px rgba(var(--kitt-red), 0.2);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 
+      0 0 25px rgba(var(--kitt-red), 0.8),
+      0 0 35px rgba(var(--kitt-orange), 0.4),
+      inset 0 0 15px rgba(var(--kitt-red), 0.3);
+    transform: scale(1.02);
+  }
+}
+
+.kitt-glow {
+  animation: redGlow 2s ease-in-out infinite;
+}
+
+.kitt-glow-enhanced {
+  animation: pulsatingGlow 2s ease-in-out infinite;
+}
+
+/* Performance optimizations */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Utility classes for animations */
+.animation-paused {
+  animation-play-state: paused;
+}
+
+.animation-running {
+  animation-play-state: running;
+}
+
+/* Responsive animation adjustments */
+@media (max-width: 768px) {
+  /* Reduce animation intensity on mobile for better performance */
+  .voice-bar {
+    animation-duration: 0.6s !important;
+  }
+  
+  .particle {
+    animation-duration: 3s !important;
+  }
+  
+  .pursuit-mode::before {
+    animation-duration: 1.2s !important;
+  }
+  
+  .energy-flow {
+    animation-duration: 4s !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .voice-bar {
+    border: 1px solid currentColor;
+  }
+  
+  .particle {
+    outline: 1px solid currentColor;
+  }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .energy-flow {
+    animation: none !important;
+    background-position: 50% 50% !important;
+  }
+  
+  .pursuit-mode::before,
+  .pursuit-mode::after {
+    animation: none !important;
+  }
+}
+
+/* Focus indicators for accessibility */
+button:focus-visible {
+  outline: 2px solid rgb(var(--kitt-red));
+  outline-offset: 2px;
+}
+
+/* Loading states */
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}

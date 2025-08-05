@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KITT Classic - ConversAI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Main Scanner Bar */
+        .scanner-bar {
+            height: 60px;
+            background: linear-gradient(to bottom, #1a0000 0%, #000 100%);
+            position: relative;
+            overflow: hidden;
+            border-bottom: 2px solid #330000;
+        }
+
+        .scanner-line {
+            position: absolute;
+            width: 15%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255, 0, 0, 0.4) 20%,
+                rgba(255, 0, 0, 0.8) 40%,
+                #ff0000 50%,
+                rgba(255, 0, 0, 0.8) 60%,
+                rgba(255, 0, 0, 0.4) 80%,
+                transparent 100%
+            );
+            animation: scan 3s ease-in-out infinite;
+            filter: blur(2px);
+        }
+
+        .scanner-line::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: inherit;
+            filter: blur(10px);
+            opacity: 0.5;
+        }
+
+        @keyframes scan {
+            0% { left: -15%; }
+            50% { left: 100%; }
+            100% { left: -15%; }
+        }
+
+        /* Main Interface */
+        .main-interface {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: radial-gradient(ellipse at center, #0a0a0a 0%, #000 60%);
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1400px;
+            height: 100%;
+            max-height: 800px;
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 30px;
+            perspective: 1500px;
+        }
+
+        /* Control Panels */
+        .panel {
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+            border: 2px solid #222;
+            border-radius: 20px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(255, 0, 0, 0.05), transparent 50%);
+            pointer-events: none;
+        }
+
+        .left-panel {
+            transform: rotateY(8deg);
+        }
+
+        .right-panel {
+            transform: rotateY(-8deg);
+        }
+
+        /* Buttons */
+        .control-button {
+            height: 70px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+        }
+
+        .control-button::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .control-button:hover::before {
+            transform: translateX(100%);
+        }
+
+        .control-button.yellow {
+            background: linear-gradient(135deg, #806000 0%, #604500 100%);
+            color: #ffd700;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 215, 0, 0.3),
+                0 4px 20px rgba(255, 215, 0, 0.2),
+                0 0 40px rgba(255, 215, 0, 0.1);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+        }
+
+        .control-button.yellow:hover {
+            background: linear-gradient(135deg, #a07000 0%, #805500 100%);
+            transform: translateY(-2px);
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 215, 0, 0.4),
+                0 6px 30px rgba(255, 215, 0, 0.3),
+                0 0 60px rgba(255, 215, 0, 0.2);
+        }
+
+        .control-button.red {
+            background: linear-gradient(135deg, #800000 0%, #600000 100%);
+            color: #ff3333;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 0, 0, 0.3),
+                0 4px 20px rgba(255, 0, 0, 0.2),
+                0 0 40px rgba(255, 0, 0, 0.1);
+            text-shadow: 0 0 10px rgba(255, 0, 0, 0.8);
+        }
+
+        .control-button.red:hover {
+            background: linear-gradient(135deg, #a00000 0%, #800000 100%);
+            transform: translateY(-2px);
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 0, 0, 0.4),
+                0 6px 30px rgba(255, 0, 0, 0.3),
+                0 0 60px rgba(255, 0, 0, 0.2);
+        }
+
+        /* Center Console */
+        .center-console {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Voice Visualizer */
+        .voice-visualizer {
+            background: #000;
+            border: 3px solid #1a1a1a;
+            border-radius: 20px;
+            height: 250px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                inset 0 0 50px rgba(255, 0, 0, 0.1),
+                0 0 100px rgba(255, 0, 0, 0.05);
+        }
+
+        .frequency-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            gap: 4px;
+        }
+
+        .frequency-bar {
+            flex: 1;
+            background: linear-gradient(to top, 
+                #330000 0%, 
+                #ff0000 50%, 
+                #ff6666 100%
+            );
+            border-radius: 2px 2px 0 0;
+            transition: height 0.1s ease-out;
+            max-width: 20px;
+            opacity: 0.9;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+        }
+
+        /* Status Display */
+        .status-display {
+            background: linear-gradient(135deg, #001100 0%, #000500 100%);
+            border: 2px solid #003300;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            letter-spacing: 4px;
+            color: #00ff00;
+            text-shadow: 0 0 20px rgba(0, 255, 0, 0.8);
+            box-shadow: 
+                inset 0 0 30px rgba(0, 255, 0, 0.2),
+                0 0 40px rgba(0, 255, 0, 0.1);
+        }
+
+        /* Main Controls */
+        .main-controls {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-button {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #660000, #1a0000);
+            border: 4px solid #330000;
+            color: #ff3333;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            box-shadow: 
+                inset 0 -10px 20px rgba(0, 0, 0, 0.5),
+                0 10px 40px rgba(255, 0, 0, 0.2),
+                0 0 60px rgba(255, 0, 0, 0.1);
+        }
+
+        .voice-button:hover {
+            transform: scale(1.05);
+            box-shadow: 
+                inset 0 -10px 20px rgba(0, 0, 0, 0.5),
+                0 10px 60px rgba(255, 0, 0, 0.3),
+                0 0 80px rgba(255, 0, 0, 0.2);
+        }
+
+        .voice-button.active {
+            background: radial-gradient(circle at 30% 30%, #ff0000, #660000);
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .pursuit-button {
+            height: 60px;
+            padding: 0 50px;
+            background: linear-gradient(135deg, #1a0000 0%, #0a0000 100%);
+            border: 3px solid #660000;
+            border-radius: 30px;
+            color: #ff3333;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 0, 0, 0.2),
+                0 4px 20px rgba(255, 0, 0, 0.1);
+        }
+
+        .pursuit-button:hover {
+            background: linear-gradient(135deg, #330000 0%, #1a0000 100%);
+            border-color: #ff0000;
+            transform: translateY(-2px);
+            box-shadow: 
+                inset 0 2px 4px rgba(255, 0, 0, 0.3),
+                0 6px 30px rgba(255, 0, 0, 0.2),
+                0 0 40px rgba(255, 0, 0, 0.1);
+        }
+
+        /* Conversation Area */
+        .conversation-area {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid #1a1a1a;
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            max-height: 300px;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: -apple-system, sans-serif;
+            line-height: 1.5;
+        }
+
+        .message.user {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            margin-left: 20%;
+        }
+
+        .message.assistant {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            margin-right: 20%;
+        }
+
+        /* Status Indicators */
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px 40px;
+            border-radius: 30px;
+            border: 1px solid #333;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-led {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 10px currentColor;
+        }
+
+        .status-indicator.active {
+            color: #00ff00;
+        }
+
+        .status-indicator.inactive {
+            color: #333;
+        }
+
+        .status-indicator.warning {
+            color: #ffaa00;
+        }
+
+        .status-indicator.error {
+            color: #ff3333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Scanner -->
+    <div class="scanner-bar">
+        <div class="scanner-line"></div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="main-interface">
+        <div class="dashboard">
+            <!-- Left Panel -->
+            <div class="panel left-panel">
+                <button class="control-button yellow">ALT</button>
+                <button class="control-button yellow">OIL<br>PRESS</button>
+                <button class="control-button red">TEMP</button>
+                <button class="control-button red">ENG</button>
+                <button class="control-button red">FUEL</button>
+            </div>
+
+            <!-- Center Console -->
+            <div class="center-console">
+                <!-- Voice Visualizer -->
+                <div class="voice-visualizer">
+                    <div class="frequency-bars">
+                        <div class="frequency-bar" style="height: 20%"></div>
+                        <div class="frequency-bar" style="height: 40%"></div>
+                        <div class="frequency-bar" style="height: 60%"></div>
+                        <div class="frequency-bar" style="height: 80%"></div>
+                        <div class="frequency-bar" style="height: 100%"></div>
+                        <div class="frequency-bar" style="height: 90%"></div>
+                        <div class="frequency-bar" style="height: 70%"></div>
+                        <div class="frequency-bar" style="height: 50%"></div>
+                        <div class="frequency-bar" style="height: 60%"></div>
+                        <div class="frequency-bar" style="height: 80%"></div>
+                        <div class="frequency-bar" style="height: 100%"></div>
+                        <div class="frequency-bar" style="height: 80%"></div>
+                        <div class="frequency-bar" style="height: 60%"></div>
+                        <div class="frequency-bar" style="height: 40%"></div>
+                        <div class="frequency-bar" style="height: 20%"></div>
+                    </div>
+                </div>
+
+                <!-- Status Display -->
+                <div class="status-display">NORMAL CRUISE</div>
+
+                <!-- Main Controls -->
+                <div class="main-controls">
+                    <button class="voice-button">
+                        <svg width="60" height="60" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 3a3 3 0 00-3 3v4a3 3 0 006 0V6a3 3 0 00-3-3z"/>
+                            <path d="M3.055 11H5a5 5 0 0010 0h1.945a7 7 0 11-13.89 0z"/>
+                        </svg>
+                    </button>
+                    <button class="pursuit-button">PURSUIT</button>
+                </div>
+
+                <!-- Conversation Area -->
+                <div class="conversation-area">
+                    <div class="message assistant">
+                        Hello Michael. All systems are functioning properly. How may I assist you today?
+                    </div>
+                    <div class="message user">
+                        KITT, run a full diagnostic scan.
+                    </div>
+                    <div class="message assistant">
+                        Initiating diagnostic scan... All systems operational. Engine temperature optimal. Fuel efficiency at 98%. No threats detected in vicinity.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="panel right-panel">
+                <button class="control-button yellow">AUX</button>
+                <button class="control-button yellow">SAT<br>COMM</button>
+                <button class="control-button red">AUTO</button>
+                <button class="control-button red">EJECT</button>
+                <button class="control-button red">MPH</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-indicator active">
+            <span class="status-led"></span>
+            <span>VOICE</span>
+        </div>
+        <div class="status-indicator active">
+            <span class="status-led"></span>
+            <span>CPU</span>
+        </div>
+        <div class="status-indicator active">
+            <span class="status-led"></span>
+            <span>LINK</span>
+        </div>
+        <div class="status-indicator inactive">
+            <span class="status-led"></span>
+            <span>TURBO</span>
+        </div>
+    </div>
+
+    <script>
+        // Animate frequency bars
+        const bars = document.querySelectorAll('.frequency-bar');
+        setInterval(() => {
+            bars.forEach(bar => {
+                const height = Math.random() * 80 + 20;
+                bar.style.height = height + '%';
+            });
+        }, 100);
+
+        // Voice button interaction
+        const voiceButton = document.querySelector('.voice-button');
+        voiceButton.addEventListener('mousedown', () => {
+            voiceButton.classList.add('active');
+        });
+        voiceButton.addEventListener('mouseup', () => {
+            voiceButton.classList.remove('active');
+        });
+    </script>
+</body>
+</html>

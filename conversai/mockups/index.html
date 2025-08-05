@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConversAI Design Mockups</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            padding: 40px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 50px;
+            font-size: 36px;
+            background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .mockup-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .mockup-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .mockup-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(255, 0, 0, 0.2);
+            border-color: rgba(255, 0, 0, 0.3);
+        }
+
+        .mockup-preview {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            object-position: top;
+            background: #000;
+        }
+
+        .mockup-info {
+            padding: 25px;
+        }
+
+        .mockup-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .mockup-description {
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .view-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .view-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        .kitt-classic .mockup-title {
+            color: #ff3333;
+        }
+
+        .kitt-futuristic .mockup-title {
+            background: linear-gradient(135deg, #ff0000 0%, #ff6666 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .ai-premium .mockup-title {
+            background: linear-gradient(135deg, #6366f1 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <h1>ConversAI Design Mockups</h1>
+    
+    <div class="mockup-grid">
+        <!-- KITT Classic V2 -->
+        <div class="mockup-card kitt-classic" onclick="window.open('kitt-classic-v2.html', '_blank')">
+            <iframe class="mockup-preview" src="kitt-classic-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="mockup-info">
+                <h2 class="mockup-title">KITT Classic V2</h2>
+                <p class="mockup-description">
+                    Authentic KITT experience with the iconic 3-column voice modulator. Features smart AI-focused controls, real-time metrics, and the classic red/black aesthetic with modern functionality.
+                </p>
+                <a href="kitt-classic-v2.html" class="view-button" target="_blank">View Full Design</a>
+            </div>
+        </div>
+
+        <!-- KITT Futuristic V2 -->
+        <div class="mockup-card kitt-futuristic" onclick="window.open('kitt-futuristic-v2.html', '_blank')">
+            <iframe class="mockup-preview" src="kitt-futuristic-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="mockup-info">
+                <h2 class="mockup-title">KITT Futuristic V2</h2>
+                <p class="mockup-description">
+                    Next-gen KITT interface with glass morphism and holographic elements. Features the authentic 3-column voice modulator with modern particle effects and neural network visualization.
+                </p>
+                <a href="kitt-futuristic-v2.html" class="view-button" target="_blank">View Full Design</a>
+            </div>
+        </div>
+
+        <!-- AI Premium V2 -->
+        <div class="mockup-card ai-premium" onclick="window.open('ai-premium-v2.html', '_blank')">
+            <iframe class="mockup-preview" src="ai-premium-v2.html" scrolling="no" style="pointer-events: none;"></iframe>
+            <div class="mockup-info">
+                <h2 class="mockup-title">Premium AI Interface V2</h2>
+                <p class="mockup-description">
+                    World-class conversational AI with modern voice orbs visualization. Features collapsible sidebar, intelligence metrics panel, and sophisticated gradient accents throughout.
+                </p>
+                <a href="ai-premium-v2.html" class="view-button" target="_blank" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">View Full Design</a>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 60px; color: rgba(255, 255, 255, 0.5);">
+        <p>Click on any design to view it in full screen</p>
+    </div>
+</body>
+</html>
