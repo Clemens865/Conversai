@@ -206,6 +206,14 @@ class ModeRegistry {
             icon: '🔒',
             badges: ['Privacy-First', 'Zero Latency', 'Local Storage', 'Deterministic']
           };
+        } else if (modeId === 'markdown-library') {
+          modeInfo = {
+            ...modeInfo,
+            name: 'Markdown Library (Beta)',
+            description: 'Context-aware voice AI using markdown knowledge base. Stack: OpenAI Realtime API + Markdown Files',
+            icon: '📚',
+            badges: ['Realtime API', 'Full Context', 'Markdown-Based', 'Beta']
+          };
         }
         
         metadata.push(modeInfo);
@@ -231,6 +239,11 @@ export async function registerAllModes() {
     const { ClaudeLocalFirstMode } = await import('./claude-local-first');
     return new ClaudeLocalFirstMode();
   }, 5);
+
+  modeRegistry.registerFactory('markdown-library', async () => {
+    const { MarkdownLibraryMode } = await import('./markdown-library');
+    return new MarkdownLibraryMode();
+  }, 8);
 
   // Future modes can be added here
   // modeRegistry.registerFactory('gemini-ultra', async () => {
