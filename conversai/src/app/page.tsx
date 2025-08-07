@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
-import MinimalPureInterface from '@/components/MinimalPureInterface'
+import MinimalPureInterfaceModular from '@/components/MinimalPureInterfaceModular'
 import AuthForm from '@/components/AuthForm'
 
 export default function Home() {
@@ -60,7 +60,7 @@ export default function Home() {
 
   return (
     <>
-      <MinimalPureInterface user={user} />
+      <MinimalPureInterfaceModular user={user} />
       
       <button
         onClick={() => signOut()}

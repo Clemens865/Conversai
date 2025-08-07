@@ -3,12 +3,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import ConversationHistory from './ConversationHistory';
-import ApproachSelector, { ConversationApproach } from './ApproachSelector';
+import ModeSelector from './ModeSelector';
+import SettingsPanel from './SettingsPanel';
 import PromptTreeVisualizer from './PromptTreeVisualizer';
 import UserFactsDisplay from './memory/UserFactsDisplay';
-import FactMemoryDisplay from './FactMemoryDisplay';
-import { createClient } from '@/lib/supabase/client';
-import { memoryManager, MemoryItem, PromptTreeNode } from '@/lib/services/memory/multiTierMemory';
+import LocalMemoryDisplay from './LocalMemoryDisplay';
+import { modeRegistry, registerAllModes } from '@/lib/modes/registry';
+import { ConversationMode } from '@/lib/modes/types';
+import { ClaudeLocalFirstMode } from '@/lib/modes/claude-local-first';
+import { ClaudeLocalFirstVoice } from '@/lib/modes/claude-local-first/voice';
 
 interface Message {
   id: string;
@@ -17,141 +20,182 @@ interface Message {
   timestamp: Date;
 }
 
-interface MinimalPureInterfaceProps {
+interface MinimalPureInterfaceModularProps {
   user: User;
 }
 
-export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps) {
+export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfaceModularProps) {
   const [isListening, setIsListening] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [statusText, setStatusText] = useState('listening');
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'assistant',
-      content: `Hello ${user.email?.split('@')[0] || 'there'}. I'm ready to assist you. How can I help you today?`,
-      timestamp: new Date()
-    }
-  ]);
+  const [statusText, setStatusText] = useState('initializing');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [animationActive, setAnimationActive] = useState(false);
-  const [conversationApproach, setConversationApproach] = useState<ConversationApproach>('memory-hierarchical');
-  const [promptTree, setPromptTree] = useState<PromptTreeNode | null>(null);
-  const [memoryMetrics, setMemoryMetrics] = useState(memoryManager.getMetrics());
-  const [showPromptTree, setShowPromptTree] = useState(true);
+  const [currentMode, setCurrentMode] = useState<ConversationMode | null>(null);
+  const [showPromptTree, setShowPromptTree] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeSidebarPanel, setActiveSidebarPanel] = useState<'history' | 'memory' | 'settings' | 'templates' | null>(null);
-  const [showFactMemory, setShowFactMemory] = useState(false);
   
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
   const conversationIdRef = useRef<string>('');
   const recordingStartTimeRef = useRef<number>(0);
-  const supabase = createClient();
 
-  // Initialize conversationId with proper UUID and memory system
+  // Initialize mode system and load default mode
   useEffect(() => {
-    conversationIdRef.current = crypto.randomUUID();
-    console.log('New conversation started:', conversationIdRef.current);
-    console.log('User:', user.email);
-    
-    // Initialize memory manager and load user profile
-    const initializeSystem = async () => {
-      await memoryManager.initialize();
-      console.log('Memory manager initialized');
+    const initializeModes = async () => {
+      // Register all available modes
+      await registerAllModes();
       
-      // Load user profile to personalize greeting
-      try {
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const profile = await response.json();
-          setUserProfile(profile);
-          
-          // Create personalized greeting based on profile
-          const greeting = profile.name 
-            ? `Hello ${profile.name}! I remember you. How can I assist you today?`
-            : `Hello ${user.email?.split('@')[0] || 'there'}. I'm ready to assist you. How can I help you today?`;
-          
+      // Initialize default mode
+      const defaultModeId = 'claude-local-first';
+      await modeRegistry.switchMode(defaultModeId);
+      
+      const mode = modeRegistry.getCurrentMode();
+      if (mode) {
+        setCurrentMode(mode);
+        setStatusText('listening');
+        
+        // For Claude Local-First mode, try to load existing conversation
+        if (mode.id === 'claude-local-first') {
+          try {
+            const { localFirstStorage } = await import('@/lib/services/memory/localFirstStorage');
+            await localFirstStorage.initialize();
+            const conversations = await localFirstStorage.getUserConversations('local-user');
+            
+            if (conversations.length > 0) {
+              // Use the most recent conversation
+              const mostRecent = conversations.sort((a, b) => 
+                b.metadata.updated.getTime() - a.metadata.updated.getTime()
+              )[0];
+              conversationIdRef.current = mostRecent.id;
+              console.log('Continuing existing conversation:', conversationIdRef.current);
+              
+              // Set greeting with user's name if available
+              const userName = mostRecent.userProfile.name;
+              setMessages([{
+                id: '1',
+                type: 'assistant',
+                content: userName 
+                  ? `Welcome back, ${userName}! I remember our previous conversations. How can I help you today?`
+                  : getGreetingForMode(mode.id),
+                timestamp: new Date()
+              }]);
+            } else {
+              // No existing conversations, create new
+              conversationIdRef.current = crypto.randomUUID();
+              console.log('New conversation started:', conversationIdRef.current);
+              setMessages([{
+                id: '1',
+                type: 'assistant',
+                content: getGreetingForMode(mode.id),
+                timestamp: new Date()
+              }]);
+            }
+          } catch (error) {
+            console.error('Error loading existing conversations:', error);
+            conversationIdRef.current = crypto.randomUUID();
+            setMessages([{
+              id: '1',
+              type: 'assistant',
+              content: getGreetingForMode(mode.id),
+              timestamp: new Date()
+            }]);
+          }
+        } else {
+          // Other modes - create new conversation
+          conversationIdRef.current = crypto.randomUUID();
+          console.log('New conversation started:', conversationIdRef.current);
           setMessages([{
             id: '1',
             type: 'assistant',
-            content: greeting,
+            content: getGreetingForMode(mode.id),
             timestamp: new Date()
           }]);
         }
-      } catch (error) {
-        console.error('Error loading user profile:', error);
-        // Fallback greeting
-        setMessages([{
-          id: '1',
-          type: 'assistant',
-          content: `Hello ${user.email?.split('@')[0] || 'there'}. I'm ready to assist you. How can I help you today?`,
-          timestamp: new Date()
-        }]);
       }
     };
     
-    initializeSystem();
-    
-    // Subscribe to memory metrics
-    const metricsInterval = setInterval(() => {
-      setMemoryMetrics(memoryManager.getMetrics());
-    }, 2000);
-    
-    return () => clearInterval(metricsInterval);
+    initializeModes();
   }, [user]);
 
-  // Handle conversation selection
-  const handleSelectConversation = async (conversationId: string) => {
-    try {
-      // Load messages for selected conversation
-      const { data: messages, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error loading messages:', error);
-        return;
-      }
-
-      // Convert database messages to UI format
-      const formattedMessages: Message[] = messages?.map((msg: any) => ({
-        id: msg.id,
-        type: msg.role as 'user' | 'assistant',
-        content: msg.content,
-        timestamp: new Date(msg.created_at)
-      })) || [];
-
-      // Add initial greeting if no messages
-      if (formattedMessages.length === 0) {
-        formattedMessages.push({
-          id: '1',
-          type: 'assistant',
-          content: `Hello ${user.email?.split('@')[0] || 'there'}. How can I assist you today?`,
-          timestamp: new Date()
-        });
-      }
-
-      setMessages(formattedMessages);
-      conversationIdRef.current = conversationId;
-    } catch (error) {
-      console.error('Error in handleSelectConversation:', error);
+  const getGreetingForMode = (modeId: string): string => {
+    switch (modeId) {
+      case 'memory-hierarchical':
+        return `Hello ${user.email?.split('@')[0] || 'there'}! I'm using advanced memory systems to remember our conversations. How can I assist you today?`;
+      case 'claude-local-first':
+        return `Hello! I'm now using the Claude Local-First approach. Your conversations are more private, and I'll respond instantly. How can I help you today?`;
+      default:
+        return `Hello ${user.email?.split('@')[0] || 'there'}. I'm ready to assist you. How can I help today?`;
     }
   };
 
-  // Handle new conversation
-  const handleNewConversation = () => {
-    conversationIdRef.current = crypto.randomUUID();
-    setMessages([{
-      id: '1',
-      type: 'assistant',
-      content: `Hello ${user.email?.split('@')[0] || 'there'}. What would you like to talk about?`,
-      timestamp: new Date()
-    }]);
-    console.log('Started new conversation:', conversationIdRef.current);
+  // Handle mode changes
+  const handleModeChange = async (modeId: string) => {
+    console.log('Switching to mode:', modeId);
+    
+    // Get the new mode
+    const mode = modeRegistry.getCurrentMode();
+    if (mode) {
+      setCurrentMode(mode);
+      
+      // For Claude Local-First mode, try to continue existing conversation
+      if (mode.id === 'claude-local-first') {
+        try {
+          const { localFirstStorage } = await import('@/lib/services/memory/localFirstStorage');
+          await localFirstStorage.initialize();
+          const conversations = await localFirstStorage.getUserConversations('local-user');
+          
+          if (conversations.length > 0) {
+            // Use the most recent conversation
+            const mostRecent = conversations.sort((a, b) => 
+              b.metadata.updated.getTime() - a.metadata.updated.getTime()
+            )[0];
+            conversationIdRef.current = mostRecent.id;
+            console.log('Continuing existing conversation:', conversationIdRef.current);
+            
+            // Set greeting with user's name if available
+            const userName = mostRecent.userProfile.name;
+            setMessages([{
+              id: '1',
+              type: 'assistant',
+              content: userName 
+                ? `Welcome back, ${userName}! I've switched to the Claude Local-First mode and still remember you.`
+                : getGreetingForMode(modeId),
+              timestamp: new Date()
+            }]);
+          } else {
+            // No existing conversations, create new
+            conversationIdRef.current = crypto.randomUUID();
+            setMessages([{
+              id: '1',
+              type: 'assistant',
+              content: getGreetingForMode(modeId),
+              timestamp: new Date()
+            }]);
+          }
+        } catch (error) {
+          console.error('Error loading existing conversations:', error);
+          conversationIdRef.current = crypto.randomUUID();
+          setMessages([{
+            id: '1',
+            type: 'assistant',
+            content: getGreetingForMode(modeId),
+            timestamp: new Date()
+          }]);
+        }
+      } else {
+        // Other modes - create new conversation
+        conversationIdRef.current = crypto.randomUUID();
+        setMessages([{
+          id: '1',
+          type: 'assistant',
+          content: getGreetingForMode(modeId),
+          timestamp: new Date()
+        }]);
+      }
+      
+      setStatusText('listening');
+    }
   };
 
   // Voice modulator animation
@@ -198,169 +242,83 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
   }, [animationActive]);
 
   const startRecording = async () => {
+    if (!currentMode) {
+      console.error('No mode selected');
+      return;
+    }
+    
     try {
-      // Use Web Speech API for Claude approach
-      if (conversationApproach === 'claude-local-first') {
-        // Check if Web Speech API is available
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-          alert('Your browser does not support Web Speech API. Please use Chrome or Edge.');
-          return;
-        }
+      setIsListening(true);
+      setStatusText('listening');
+      setAnimationActive(true);
+      recordingStartTimeRef.current = Date.now();
+      
+      // Special handling for Claude Local-First mode
+      if (currentMode.id === 'claude-local-first') {
+        const voice = currentMode.voice as ClaudeLocalFirstVoice;
         
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-        
-        recognition.onstart = () => {
-          setIsListening(true);
-          setStatusText('listening');
-          setAnimationActive(true);
-          console.log('Web Speech API started');
-        };
-        
-        recognition.onresult = async (event: any) => {
-          const transcript = Array.from(event.results)
-            .map((result: any) => result[0])
-            .map((result: any) => result.transcript)
-            .join('');
+        // Set up transcript callback
+        voice.setTranscriptCallback(async (transcript: string) => {
+          setIsListening(false);
+          setStatusText('processing');
+          setAnimationActive(false);
           
-          if (event.results[0].isFinal) {
-            console.log('Final transcript:', transcript);
-            setIsListening(false);
-            setStatusText('processing');
-            setAnimationActive(false);
-            
-            // Process with Claude approach
-            await processClaudeTranscript(transcript);
-          }
-        };
+          // Process the transcript
+          await processTranscript(transcript);
+        });
         
-        recognition.onerror = (event: any) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-          setStatusText('listening');
-          setAnimationActive(false);
-          alert('Speech recognition error: ' + event.error);
-        };
-        
-        recognition.onend = () => {
-          setIsListening(false);
-          setStatusText('listening');
-          setAnimationActive(false);
-        };
-        
-        recognition.start();
-        recordingStartTimeRef.current = Date.now();
-        
+        await voice.startRecording();
       } else {
-        // Original recording logic for memory-hierarchical approach
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        
-        // Use a supported MIME type
-        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') 
-          ? 'audio/webm;codecs=opus' 
-          : 'audio/webm';
-        
-        const mediaRecorder = new MediaRecorder(stream, { mimeType });
-        mediaRecorderRef.current = mediaRecorder;
-        audioChunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-            console.log('Audio chunk received:', event.data.size, 'bytes');
-          }
-        };
-
-        mediaRecorder.onstop = async () => {
-          console.log('Recording stopped. Total chunks:', audioChunksRef.current.length);
-          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-          console.log('Audio blob size:', audioBlob.size, 'bytes');
-          console.log('Conversation ID:', conversationIdRef.current);
-          
-          if (audioBlob.size === 0) {
-            console.error('No audio data recorded');
-            alert('No audio was recorded. Please check your microphone permissions.');
-            return;
-          }
-          
-          await processAudio(audioBlob);
-        };
-
-        // Record in chunks for better reliability
-        mediaRecorder.start(100); // 100ms chunks
-        recordingStartTimeRef.current = Date.now();
-        setIsListening(true);
-        setStatusText('listening');
-        setAnimationActive(true);
-        console.log('Recording started with MIME type:', mimeType);
+        // Standard recording for other modes
+        await currentMode.voice.startRecording();
       }
     } catch (error) {
       console.error('Error starting recording:', error);
+      setIsListening(false);
+      setStatusText('listening');
+      setAnimationActive(false);
       alert('Could not access microphone. Please check your browser permissions.');
     }
   };
 
-  const stopRecording = () => {
-    if (conversationApproach === 'claude-local-first') {
-      // For Web Speech API, we don't need to manually stop
-      // The recognition will stop automatically when user stops speaking
+  const stopRecording = async () => {
+    if (!currentMode || !isListening) return;
+    
+    const recordingDuration = Date.now() - recordingStartTimeRef.current;
+    
+    // Ensure minimum recording duration (500ms) for non-Claude modes
+    if (currentMode.id !== 'claude-local-first' && recordingDuration < 500) {
+      console.log('Recording too short:', recordingDuration, 'ms');
+      alert('Please hold the button longer and speak clearly.');
+      currentMode.voice.stopRecording();
+      setIsListening(false);
+      setStatusText('listening');
+      setAnimationActive(false);
       return;
     }
     
-    // Original stop logic for memory-hierarchical approach
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      const recordingDuration = Date.now() - recordingStartTimeRef.current;
-      
-      // Ensure minimum recording duration (500ms)
-      if (recordingDuration < 500) {
-        console.log('Recording too short:', recordingDuration, 'ms');
-        alert('Please hold the button longer and speak clearly.');
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-        setIsListening(false);
-        setStatusText('listening');
-        setAnimationActive(false);
-        return;
-      }
-      
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    currentMode.voice.stopRecording();
+    
+    // For non-Claude modes, process the audio
+    if (currentMode.id !== 'claude-local-first') {
       setIsListening(false);
       setStatusText('processing');
       setAnimationActive(false);
+      
+      // Get audio blob and process
+      const audioBlob = (currentMode.voice as any).getAudioBlob?.();
+      if (audioBlob) {
+        await processAudio(audioBlob);
+      }
     }
   };
 
-  const processClaudeTranscript = async (transcript: string) => {
+  const processTranscript = async (transcript: string) => {
+    if (!currentMode) return;
+    
     setIsProcessing(true);
     
     try {
-      const formData = new FormData();
-      // Create a dummy audio blob for compatibility
-      const dummyBlob = new Blob([''], { type: 'audio/webm' });
-      formData.append('audio', dummyBlob);
-      formData.append('transcript', transcript);
-      formData.append('conversationId', conversationIdRef.current);
-      formData.append('approach', conversationApproach);
-
-      const response = await fetch('/api/voice/process-claude', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorMessage = data.error || 'Voice processing failed';
-        console.error('Server error:', errorMessage);
-        alert(errorMessage);
-        throw new Error(errorMessage);
-      }
-      
       // Add user message
       const userMessage: Message = {
         id: `user-${Date.now()}`,
@@ -369,35 +327,49 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         timestamp: new Date()
       };
       setMessages(prev => [...prev, userMessage]);
-
+      
+      // Process with current mode
+      let result;
+      if (currentMode.id === 'claude-local-first') {
+        // Use special method for Claude mode
+        result = await (currentMode as ClaudeLocalFirstMode).processTranscript(
+          transcript,
+          conversationIdRef.current
+        );
+      } else {
+        // Use standard text processing
+        result = await currentMode.processText(transcript, conversationIdRef.current);
+      }
+      
       // Add assistant response
-      if (data.response) {
+      if (result.response) {
         setStatusText('responding');
         setAnimationActive(true);
         
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
-          content: data.response,
+          content: result.response,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
         
-        // Use Web Speech Synthesis for TTS
-        if ('speechSynthesis' in window) {
-          const utterance = new SpeechSynthesisUtterance(data.response);
-          utterance.rate = 1.0;
-          utterance.pitch = 1.0;
-          utterance.volume = 1.0;
-          
-          utterance.onend = () => {
+        // For Claude mode, speech synthesis is handled internally
+        if (currentMode.id !== 'claude-local-first' && result.audioUrl) {
+          const audio = new Audio(result.audioUrl);
+          audio.onended = () => {
             setStatusText('listening');
             setAnimationActive(false);
           };
-          
-          window.speechSynthesis.speak(utterance);
+          await audio.play();
+        } else if (currentMode.id === 'claude-local-first') {
+          // Wait for synthesis to complete
+          setTimeout(() => {
+            setStatusText('listening');
+            setAnimationActive(false);
+          }, 500);
         } else {
-          // Fallback if speech synthesis not available
+          // No audio, reset after a delay
           setTimeout(() => {
             setStatusText('listening');
             setAnimationActive(false);
@@ -405,123 +377,58 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         }
       }
     } catch (error) {
-      console.error('Error processing voice:', error);
+      console.error('Error processing transcript:', error);
       setStatusText('listening');
       setAnimationActive(false);
+      alert('Failed to process your message. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const processAudio = async (audioBlob: Blob) => {
+    if (!currentMode) return;
+    
     setIsProcessing(true);
-    const formData = new FormData();
-    formData.append('audio', audioBlob);
-    formData.append('conversationId', conversationIdRef.current);
-    formData.append('approach', conversationApproach);
-
+    
     try {
-      // Use different endpoints based on approach
-      const endpoint = conversationApproach === 'claude-local-first' 
-        ? '/api/voice/process-claude' 
-        : '/api/voice/process';
-        
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Show specific error message from server
-        const errorMessage = data.error || 'Voice processing failed';
-        console.error('Server error:', errorMessage);
-        alert(errorMessage);
-        throw new Error(errorMessage);
-      }
+      // Process with current mode
+      const result = await currentMode.processAudio(audioBlob, conversationIdRef.current);
       
       // Add user message
-      if (data.transcript) {
+      if (result.transcript) {
         const userMessage: Message = {
           id: `user-${Date.now()}`,
           type: 'user',
-          content: data.transcript,
+          content: result.transcript,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, userMessage]);
-        
-        // Store in multi-tier memory
-        const memoryItem: MemoryItem = {
-          id: userMessage.id,
-          content: userMessage.content,
-          metadata: {
-            timestamp: userMessage.timestamp,
-            conversationId: conversationIdRef.current,
-            userId: user.id,
-            accessCount: 1,
-            lastAccessed: new Date(),
-            source: 'user'
-          }
-        };
-        await memoryManager.store(memoryItem);
       }
-
+      
       // Add assistant response
-      if (data.response) {
+      if (result.response) {
         setStatusText('responding');
         setAnimationActive(true);
         
         const assistantMessage: Message = {
           id: `assistant-${Date.now()}`,
           type: 'assistant',
-          content: data.response,
+          content: result.response,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, assistantMessage]);
         
-        // Store assistant response in memory
-        const assistantMemoryItem: MemoryItem = {
-          id: assistantMessage.id,
-          content: assistantMessage.content,
-          metadata: {
-            timestamp: assistantMessage.timestamp,
-            conversationId: conversationIdRef.current,
-            userId: user.id,
-            accessCount: 1,
-            lastAccessed: new Date(),
-            source: 'assistant'
-          }
-        };
-        await memoryManager.store(assistantMemoryItem);
-        
-        // Generate prompt tree predictions
-        const context = messages.slice(-5).map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          metadata: {
-            timestamp: msg.timestamp,
-            conversationId: conversationIdRef.current,
-            userId: user.id,
-            accessCount: 1,
-            lastAccessed: new Date(),
-            source: msg.type as 'user' | 'assistant'
-          }
-        }));
-        
-        const tree = await memoryManager.predictNext(context);
-        setPromptTree(tree);
-
         // Play audio if available
-        if (data.audio) {
-          const audio = new Audio(`data:audio/mp3;base64,${data.audio}`);
+        if (result.audioUrl) {
+          const audio = new Audio(result.audioUrl);
           audio.onended = () => {
             setStatusText('listening');
             setAnimationActive(false);
           };
           await audio.play();
         } else {
-          // If no audio, reset after a delay
+          // No audio, reset after a delay
           setTimeout(() => {
             setStatusText('listening');
             setAnimationActive(false);
@@ -529,63 +436,22 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         }
       }
     } catch (error) {
-      console.error('Error processing voice:', error);
+      console.error('Error processing audio:', error);
       setStatusText('listening');
       setAnimationActive(false);
+      alert('Failed to process audio. Please try again.');
     } finally {
       setIsProcessing(false);
     }
   };
 
   const sendTextMessage = async () => {
-    if (!inputValue.trim()) return;
-
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      type: 'user',
-      content: inputValue,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
-    setStatusText('thinking');
-
-    // Simulate AI response
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: `assistant-${Date.now()}`,
-        type: 'assistant',
-        content: "I understand your message. Let me help you with that.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, assistantMessage]);
-      setStatusText('listening');
-    }, 1500);
-  };
-  
-  const handleApproachChange = async (approach: ConversationApproach) => {
-    setConversationApproach(approach);
-    // TODO: Implement approach switching logic
-    console.log('Switched to conversation approach:', approach);
+    if (!inputValue.trim() || !currentMode) return;
     
-    // Save current conversation and reset for new approach
-    if (approach === 'claude-local-first') {
-      // Initialize Claude-based approach
-      setMessages([{
-        id: '1',
-        type: 'assistant',
-        content: `Hello! I'm now using the Claude Local-First approach. Your conversations are more private, and I'll respond instantly. How can I help you today?`,
-        timestamp: new Date()
-      }]);
-    } else {
-      // Initialize memory-hierarchical approach
-      setMessages([{
-        id: '1',
-        type: 'assistant',
-        content: `Welcome back to Memory Mode! I'm using advanced memory systems to remember our conversations. How can I assist you?`,
-        timestamp: new Date()
-      }]);
-    }
+    const text = inputValue;
+    setInputValue('');
+    
+    await processTranscript(text);
   };
 
   const toggleRecording = () => {
@@ -606,6 +472,49 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
       setSidebarExpanded(true);
       setActiveSidebarPanel(panel);
     }
+  };
+
+  // Handle conversation selection
+  const handleSelectConversation = async (conversationId: string) => {
+    if (!currentMode) return;
+    
+    try {
+      // Load messages for selected conversation
+      const messages = await currentMode.storage.getConversationHistory(conversationId);
+      
+      // Convert to UI format
+      const formattedMessages: Message[] = messages.map((msg: any) => ({
+        id: msg.id,
+        type: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
+      
+      // Add initial greeting if no messages
+      if (formattedMessages.length === 0) {
+        formattedMessages.push({
+          id: '1',
+          type: 'assistant',
+          content: getGreetingForMode(currentMode.id),
+          timestamp: new Date()
+        });
+      }
+      
+      setMessages(formattedMessages);
+      conversationIdRef.current = conversationId;
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  const handleNewConversation = () => {
+    conversationIdRef.current = crypto.randomUUID();
+    setMessages([{
+      id: '1',
+      type: 'assistant',
+      content: currentMode ? getGreetingForMode(currentMode.id) : 'Hello! How can I help you?',
+      timestamp: new Date()
+    }]);
   };
 
   return (
@@ -644,7 +553,7 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         gap: 0,
         transition: 'grid-template-columns 0.3s ease'
       }}>
-        {/* Sidebar - Icons only by default, expands to show content */}
+        {/* Sidebar */}
         <aside style={{ 
           background: 'rgba(255, 255, 255, 0.02)',
           borderRight: '1px solid rgba(255, 255, 255, 0.05)',
@@ -665,7 +574,9 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
             padding: '24px 0',
             gap: '20px',
             background: sidebarExpanded ? 'rgba(255, 255, 255, 0.01)' : 'transparent',
-            borderRight: sidebarExpanded ? '1px solid rgba(255, 255, 255, 0.03)' : 'none'
+            borderRight: sidebarExpanded ? '1px solid rgba(255, 255, 255, 0.03)' : 'none',
+            width: sidebarExpanded ? '80px' : 'auto',
+            minWidth: sidebarExpanded ? '80px' : 'auto'
           }}>
             {/* History button */}
             <button 
@@ -684,21 +595,7 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
 
             <div className="sidebar-divider" />
 
-            {/* Feature buttons */}
-            <button 
-              className="sidebar-button"
-              onClick={() => handleSidebarButtonClick('templates')}
-              style={{
-                background: activeSidebarPanel === 'templates' ? 'rgba(255, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                borderColor: activeSidebarPanel === 'templates' ? 'rgba(255, 0, 0, 0.3)' : 'rgba(255, 255, 255, 0.08)'
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="tooltip">Templates</span>
-            </button>
-
+            {/* Memory button */}
             <button 
               className="sidebar-button"
               onClick={() => handleSidebarButtonClick('memory')}
@@ -713,6 +610,7 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
               <span className="tooltip">Memory</span>
             </button>
 
+            {/* Settings button */}
             <button 
               className="sidebar-button"
               onClick={() => handleSidebarButtonClick('settings')}
@@ -756,190 +654,24 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
                     letterSpacing: '0.5px',
                     marginBottom: '20px'
                   }}>Memory</h3>
-                  
-                  {/* Memory Type Selector */}
-                  {conversationApproach === 'memory-hierarchical' && (
-                    <div style={{ marginBottom: '20px' }}>
-                      <button
-                        onClick={() => setShowFactMemory(true)}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          background: 'rgba(255, 0, 0, 0.1)',
-                          border: '1px solid rgba(255, 0, 0, 0.3)',
-                          borderRadius: '8px',
-                          color: '#ff3333',
-                          fontSize: '14px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.3s',
-                          marginBottom: '12px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'rgba(255, 0, 0, 0.1)';
-                        }}
-                      >
-                        🧠 View Fact-Based Memory
-                      </button>
-                      
-                      <div style={{
-                        padding: '12px',
-                        background: 'rgba(255, 165, 0, 0.05)',
-                        border: '1px solid rgba(255, 165, 0, 0.2)',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        color: 'rgba(255, 165, 0, 0.9)',
-                        marginBottom: '16px'
-                      }}>
-                        💡 New fact-based memory system stores structured information without vector embeddings
-                      </div>
-                    </div>
+                  {currentMode?.id === 'claude-local-first' ? (
+                    <LocalMemoryDisplay 
+                      isOpen={true}
+                      embedded={true}
+                      onClose={() => setActiveSidebarPanel(null)}
+                    />
+                  ) : (
+                    <UserFactsDisplay />
                   )}
-                  
-                  <UserFactsDisplay />
-                </div>
-              )}
-
-              {/* Templates Panel */}
-              {activeSidebarPanel === 'templates' && (
-                <div style={{ padding: '24px', overflowY: 'auto', height: '100%' }}>
-                  <h3 style={{
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    fontSize: '16px',
-                    fontWeight: 500,
-                    letterSpacing: '0.5px',
-                    marginBottom: '20px'
-                  }}>Templates</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <button style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{ fontWeight: 500, marginBottom: '4px' }}>Email Assistant</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>Help with writing professional emails</div>
-                    </button>
-                    <button style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{ fontWeight: 500, marginBottom: '4px' }}>Code Review</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>Analyze and improve your code</div>
-                    </button>
-                    <button style={{
-                      background: 'rgba(255, 255, 255, 0.03)',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      color: 'rgba(255, 255, 255, 0.7)',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.3s'
-                    }}>
-                      <div style={{ fontWeight: 500, marginBottom: '4px' }}>Creative Writing</div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>Stories, poems, and creative content</div>
-                    </button>
-                  </div>
                 </div>
               )}
 
               {/* Settings Panel */}
               {activeSidebarPanel === 'settings' && (
-                <div style={{ padding: '24px', overflowY: 'auto', height: '100%' }}>
-                  <h3 style={{
-                    color: 'rgba(255, 255, 255, 0.9)',
-                    fontSize: '16px',
-                    fontWeight: 500,
-                    letterSpacing: '0.5px',
-                    marginBottom: '20px'
-                  }}>Settings</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div>
-                      <label style={{
-                        display: 'block',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '13px',
-                        marginBottom: '8px'
-                      }}>Voice Speed</label>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="2"
-                        step="0.1"
-                        defaultValue="1"
-                        style={{
-                          width: '100%',
-                          background: 'rgba(255, 255, 255, 0.1)',
-                          borderRadius: '4px',
-                          outline: 'none'
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '13px',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: '4px'
-                          }}
-                        />
-                        Auto-play responses
-                      </label>
-                    </div>
-                    <div>
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        color: 'rgba(255, 255, 255, 0.7)',
-                        fontSize: '13px',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="checkbox"
-                          defaultChecked
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            background: 'rgba(255, 255, 255, 0.1)',
-                            border: '1px solid rgba(255, 255, 255, 0.3)',
-                            borderRadius: '4px'
-                          }}
-                        />
-                        Remember conversations
-                      </label>
-                    </div>
-                  </div>
-                </div>
+                <SettingsPanel
+                  currentMode={currentMode}
+                  onModeChange={handleModeChange}
+                />
               )}
             </div>
           )}
@@ -1201,15 +933,6 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
           stroke: rgba(255, 255, 255, 0.8);
         }
 
-        .sidebar-button.active {
-          background: rgba(255, 0, 0, 0.1);
-          border-color: rgba(255, 0, 0, 0.3);
-        }
-
-        .sidebar-button.active svg {
-          stroke: #ff3333;
-        }
-
         .tooltip {
           position: absolute;
           left: 100%;
@@ -1391,26 +1114,13 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         }
       `}</style>
       
-      {/* Approach Selector */}
-      <ApproachSelector
-        currentApproach={conversationApproach}
-        onApproachChange={handleApproachChange}
+      {/* Mode Selector - Hidden since it's now in Settings */}
+      {/* <ModeSelector
+        onModeChange={handleModeChange}
         isMinimized={true}
-      />
+      /> */}
       
-      {/* Prompt Tree Visualizer */}
-      {showPromptTree && (
-        <PromptTreeVisualizer
-          tree={promptTree}
-          onNodeSelect={(node) => {
-            console.log('Selected prediction:', node);
-            // Could auto-fill input with selected prediction
-          }}
-          isMinimized={false}
-        />
-      )}
-      
-      {/* Memory Metrics Display */}
+      {/* Mode Metrics Display */}
       <div style={{
         position: 'fixed',
         top: '20px',
@@ -1422,44 +1132,25 @@ export default function MinimalPureInterface({ user }: MinimalPureInterfaceProps
         fontSize: '11px',
         color: 'rgba(255, 255, 255, 0.7)',
         display: 'flex',
+        alignItems: 'center',
         gap: '20px',
         transition: 'left 0.3s ease'
       }}>
-        <span>STM: {memoryMetrics.itemsInSTM} items</span>
-        <span>Hit Rate: {memoryMetrics.hitRate.toFixed(1)}%</span>
-        <span>Latency: {memoryMetrics.avgLatency.toFixed(0)}ms</span>
-        <span>Trees: {memoryMetrics.activePromptTrees}</span>
+        <span>Mode: {currentMode?.name || 'Loading...'}</span>
+        {currentMode && (
+          <>
+            <span>Latency: {currentMode.getMetrics().latency}%</span>
+            <span>Privacy: {currentMode.getMetrics().privacy}%</span>
+            <span style={{ 
+              color: 'rgba(255, 255, 255, 0.5)', 
+              fontSize: '10px',
+              marginLeft: '8px'
+            }}>
+              ⚙️ Switch modes in Settings
+            </span>
+          </>
+        )}
       </div>
-      
-      {/* User Profile Indicator */}
-      {userProfile && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '440px',
-          background: 'rgba(0, 255, 0, 0.1)',
-          border: '1px solid rgba(0, 255, 0, 0.3)',
-          borderRadius: '8px',
-          padding: '8px 16px',
-          fontSize: '12px',
-          color: 'rgba(0, 255, 0, 0.9)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          <span style={{ fontSize: '16px' }}>🧠</span>
-          <span>
-            {userProfile.name ? `Remembering: ${userProfile.name}` : 'Learning about you...'}
-            {userProfile.factsCount > 0 && ` (${userProfile.factsCount} facts)`}
-          </span>
-        </div>
-      )}
-      
-      {/* Fact Memory Display Modal */}
-      <FactMemoryDisplay 
-        isOpen={showFactMemory} 
-        onClose={() => setShowFactMemory(false)} 
-      />
     </div>
   );
 }

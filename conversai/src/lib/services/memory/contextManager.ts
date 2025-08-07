@@ -90,9 +90,17 @@ export class ContextManager {
       // Add category context to the relevant history
       for (const batch of categoryBatches) {
         if (batch.facts.length > 0) {
+          // Format facts nicely for context
+          const factsText = batch.facts.map((fact: any) => {
+            if (fact.type === 'pet' && fact.value) {
+              return `${fact.value.name} (${fact.value.species})`;
+            }
+            return `${fact.type}: ${JSON.stringify(fact.value)}`;
+          }).join(', ');
+          
           relevantHistory.push({
-            content: `${batch.categoryName}: ${batch.summary}`,
-            similarity_score: 0.9, // High score for category matches
+            content: `User has ${batch.categoryName.toLowerCase()}: ${factsText}`,
+            similarity_score: 0.95, // Very high score for category matches
             created_at: new Date().toISOString()
           });
         }
@@ -376,6 +384,11 @@ export class ContextManager {
         const nameMatch = msg.content.match(/[Mm]y name is (\w+)/);
         if (nameMatch) {
           parts.push(`>>> IMPORTANT: The user's name is ${nameMatch[1]} <<<`);
+        }
+        
+        // Extract pet information
+        if (msg.content.toLowerCase().includes('pets:') || msg.content.toLowerCase().includes('pet')) {
+          parts.push(`>>> IMPORTANT: ${msg.content} <<<`);
         }
       });
       parts.push('\n=== END OF PREVIOUS CONTEXT ===');

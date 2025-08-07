@@ -96,6 +96,52 @@ body {
   will-change: transform, opacity;
 }
 
+/* Sidebar button styles */
+.sidebar-button {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s;
+  position: relative;
+}
+
+.sidebar-button:hover {
+  background: rgba(255, 0, 0, 0.15) !important;
+  border-color: rgba(255, 0, 0, 0.4) !important;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.sidebar-button .tooltip {
+  position: absolute;
+  left: 54px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-button:hover .tooltip {
+  opacity: 1;
+}
+
+.sidebar-divider {
+  width: 24px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* Utility classes for animations */
 .animation-paused {
   animation-play-state: paused;
