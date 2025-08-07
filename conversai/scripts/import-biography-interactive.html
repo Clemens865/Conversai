@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConversAI Biography Import Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #ff3333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .category {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .category h3 {
+            color: #ff6666;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .fact-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .fact-item:hover {
+            background: rgba(255, 0, 0, 0.1);
+        }
+        
+        .fact-item input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        .fact-key {
+            color: #888;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        .fact-value {
+            flex: 1;
+            margin-left: 10px;
+        }
+        
+        .confidence {
+            color: #66ff66;
+            font-size: 12px;
+            margin-left: auto;
+        }
+        
+        button {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.4);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: rgba(255, 0, 0, 0.3);
+            border-color: rgba(255, 0, 0, 0.6);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .import-status {
+            background: rgba(0, 255, 0, 0.1);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error-status {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+        
+        #selectedCount {
+            color: #ff6666;
+            font-weight: bold;
+        }
+        
+        .privacy-notice {
+            background: rgba(0, 255, 0, 0.05);
+            border: 1px solid rgba(0, 255, 0, 0.2);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ConversAI Biography Import Tool</h1>
+    
+    <div class="privacy-notice">
+        🔒 <strong>Privacy Notice:</strong> This tool runs entirely in your browser. For Claude Local-First mode, 
+        all data stays in your browser's IndexedDB. For Memory Mode, selected facts are sent to your Supabase instance.
+    </div>
+    
+    <div class="privacy-notice" style="background: rgba(255, 100, 0, 0.05); border-color: rgba(255, 100, 0, 0.2);">
+        ⚠️ <strong>Important:</strong> For Claude Local-First import to work, you must first:
+        <ol style="margin: 10px 0 0 20px;">
+            <li>Open ConversAI in this browser</li>
+            <li>Switch to "Claude Local-First (Privacy)" mode in Settings</li>
+            <li>Let it initialize (you'll see the greeting message)</li>
+            <li>Then return here to import your biography</li>
+        </ol>
+    </div>
+    
+    <div class="controls">
+        <h2>Import Options</h2>
+        <button onclick="selectAll()">Select All</button>
+        <button onclick="deselectAll()">Deselect All</button>
+        <button onclick="selectCategory('Identity')">Select Identity Only</button>
+        <button onclick="selectCategory('Relationships')">Select Relationships Only</button>
+        <button onclick="selectNonSensitive()">Select Non-Sensitive</button>
+        <div style="margin-top: 10px;">
+            Selected: <span id="selectedCount">0</span> facts
+        </div>
+    </div>
+    
+    <div id="factsList"></div>
+    
+    <div class="controls">
+        <h2>Import Actions</h2>
+        <button onclick="importToIndexedDB()" style="background: rgba(0, 255, 0, 0.2); border-color: rgba(0, 255, 0, 0.4);">
+            🔒 Import to Claude Local-First (IndexedDB)
+        </button>
+        <button onclick="generateSupabaseScript()" style="background: rgba(0, 100, 255, 0.2); border-color: rgba(0, 100, 255, 0.4);">
+            ☁️ Generate Supabase Import Script
+        </button>
+    </div>
+    
+    <div id="importStatus" class="import-status"></div>
+
+    <script>
+        // Biography facts data
+        const biographyFacts = [
+            // Personal Information
+            { category: 'Identity', key: 'full_name', value: 'Clemens Hönig', confidence: 1.0, sensitive: false },
+            { category: 'Identity', key: 'birth_year', value: '1979', confidence: 1.0, sensitive: true },
+            { category: 'Identity', key: 'birthplace', value: 'Graz, Österreich', confidence: 1.0, sensitive: false },
+            { category: 'Identity', key: 'current_age', value: '45', confidence: 0.95, sensitive: true },
+            
+            // Family - Parents
+            { category: 'Relationships', key: 'mother_name', value: 'Doris Hoenig', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'mother_profession', value: 'Hautärztin mit eigener Ordination in Graz', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'mother_birthday', value: '11. September', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'father_name', value: 'Manfred Hönig', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'father_profession', value: 'Beamter, Straßen- und Brückenbau', confidence: 1.0, sensitive: true },
+            
+            // Brother
+            { category: 'Relationships', key: 'brother_name', value: 'Julian Hönig', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'brother_birthday', value: '11. September 1976', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'brother_profession', value: 'Exterior Designer bei Apple', confidence: 1.0, sensitive: true },
+            
+            // Own Family
+            { category: 'Relationships', key: 'wife_name', value: 'Karin Schwarz', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'wife_birthday', value: '26. April 1983', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'daughter_name', value: 'Clara Hönig', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'daughter_birthday', value: '12. August 2015', confidence: 1.0, sensitive: true },
+            { category: 'Relationships', key: 'daughter_health', value: 'Zöliakie (Glutenunverträglichkeit)', confidence: 1.0, sensitive: true },
+            
+            // Pets
+            { category: 'Relationships', key: 'pet_cat_1', value: 'Holly (Siberian cat)', confidence: 0.95, sensitive: false },
+            { category: 'Relationships', key: 'pet_cat_2', value: 'Benny (Siberian cat)', confidence: 0.95, sensitive: false },
+            
+            // Location
+            { category: 'Location', key: 'childhood_address', value: 'Naglergasse 10, 8010 Graz', confidence: 1.0, sensitive: true },
+            { category: 'Location', key: 'current_city', value: 'Wien', confidence: 0.95, sensitive: false },
+            { category: 'Location', key: 'vacation_spot', value: 'Tenerife (yearly summer visits)', confidence: 0.9, sensitive: false },
+            
+            // Career
+            { category: 'History', key: 'current_job', value: 'Intelligence- & Marketing Operations Manager bei Yorizon GmbH', confidence: 1.0, sensitive: false },
+            { category: 'History', key: 'current_job_start', value: 'Januar 2025', confidence: 1.0, sensitive: false },
+            { category: 'History', key: 'company_info', value: 'Yorizon: Joint Venture von Hochtief & Thomas-Krenn', confidence: 1.0, sensitive: false },
+            
+            // Preferences
+            { category: 'Preferences', key: 'sports_youth', value: 'Skateboard- und Snowboardfahren', confidence: 1.0, sensitive: false },
+            { category: 'Preferences', key: 'sports_current', value: 'Schwimmen, Laufen, Fitnessstudio', confidence: 0.9, sensitive: false },
+            { category: 'Preferences', key: 'technology', value: '3D (Blender), KI, LLMs, Coding Assistants', confidence: 1.0, sensitive: false },
+            { category: 'Preferences', key: 'work_interest', value: 'Workflow-Automatisierung (n8n, Make.com)', confidence: 0.95, sensitive: false }
+        ];
+        
+        // Group facts by category
+        const factsByCategory = biographyFacts.reduce((acc, fact) => {
+            if (!acc[fact.category]) acc[fact.category] = [];
+            acc[fact.category].push(fact);
+            return acc;
+        }, {});
+        
+        // Render facts list
+        function renderFacts() {
+            const container = document.getElementById('factsList');
+            container.innerHTML = '';
+            
+            Object.entries(factsByCategory).forEach(([category, facts]) => {
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'category';
+                
+                const categoryEmoji = {
+                    'Identity': '👤',
+                    'Relationships': '👨‍👩‍👧',
+                    'Location': '📍',
+                    'History': '📚',
+                    'Preferences': '❤️'
+                }[category] || '📌';
+                
+                categoryDiv.innerHTML = `
+                    <h3>
+                        ${categoryEmoji} ${category}
+                        <button onclick="toggleCategory('${category}')" style="margin-left: auto; font-size: 12px;">
+                            Toggle All
+                        </button>
+                    </h3>
+                `;
+                
+                facts.forEach((fact, index) => {
+                    const factDiv = document.createElement('div');
+                    factDiv.className = 'fact-item';
+                    factDiv.innerHTML = `
+                        <input type="checkbox" id="fact_${category}_${index}" 
+                               data-category="${category}" 
+                               data-fact='${JSON.stringify(fact)}'
+                               onchange="updateCount()">
+                        <label for="fact_${category}_${index}" style="flex: 1; display: flex; align-items: center;">
+                            <span class="fact-key">${fact.key}:</span>
+                            <span class="fact-value">${fact.value}</span>
+                            <span class="confidence">${Math.round(fact.confidence * 100)}%</span>
+                            ${fact.sensitive ? '<span style="color: #ff9999; margin-left: 10px;">🔒</span>' : ''}
+                        </label>
+                    `;
+                    categoryDiv.appendChild(factDiv);
+                });
+                
+                container.appendChild(categoryDiv);
+            });
+            
+            updateCount();
+        }
+        
+        // Selection helpers
+        function selectAll() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
+            updateCount();
+        }
+        
+        function deselectAll() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateCount();
+        }
+        
+        function selectCategory(category) {
+            deselectAll();
+            document.querySelectorAll(`input[data-category="${category}"]`).forEach(cb => cb.checked = true);
+            updateCount();
+        }
+        
+        function selectNonSensitive() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                const fact = JSON.parse(cb.dataset.fact);
+                cb.checked = !fact.sensitive;
+            });
+            updateCount();
+        }
+        
+        function toggleCategory(category) {
+            const checkboxes = document.querySelectorAll(`input[data-category="${category}"]`);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+            updateCount();
+        }
+        
+        function updateCount() {
+            const count = document.querySelectorAll('input[type="checkbox"]:checked').length;
+            document.getElementById('selectedCount').textContent = count;
+        }
+        
+        // Get selected facts
+        function getSelectedFacts() {
+            return Array.from(document.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(cb => JSON.parse(cb.dataset.fact));
+        }
+        
+        // Import to IndexedDB
+        async function importToIndexedDB() {
+            const selectedFacts = getSelectedFacts();
+            if (selectedFacts.length === 0) {
+                showStatus('Please select at least one fact to import', true);
+                return;
+            }
+            
+            try {
+                // Open IndexedDB with proper initialization
+                const dbName = 'ConversAILocalFirst';
+                const request = indexedDB.open(dbName, 1);
+                
+                request.onerror = () => {
+                    showStatus('Failed to open IndexedDB', true);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    // Create the conversations object store if it doesn't exist
+                    if (!db.objectStoreNames.contains('conversations')) {
+                        const objectStore = db.createObjectStore('conversations', { keyPath: 'id' });
+                        objectStore.createIndex('userId', 'userId', { unique: false });
+                        objectStore.createIndex('updated', 'metadata.updated', { unique: false });
+                    }
+                };
+                
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    
+                    // Check if the object store exists
+                    if (!db.objectStoreNames.contains('conversations')) {
+                        showStatus('IndexedDB not initialized. Please visit ConversAI and switch to Claude Local-First mode first, then try again.', true);
+                        db.close();
+                        return;
+                    }
+                    
+                    const transaction = db.transaction(['conversations'], 'readwrite');
+                    const store = transaction.objectStore('conversations');
+                    
+                    // Create conversation state
+                    const conversationId = crypto.randomUUID();
+                    const state = {
+                        id: conversationId,
+                        userId: 'local-user',
+                        userProfile: {
+                            name: 'Clemens Hönig',
+                            facts: selectedFacts.map(fact => ({
+                                fact: `${fact.category}: ${fact.value}`,
+                                confidence: fact.confidence,
+                                timestamp: new Date(),
+                                source: 'biography-import'
+                            }))
+                        },
+                        currentState: 'biographical-data-imported',
+                        shortTermMemory: [],
+                        metadata: {
+                            created: new Date(),
+                            updated: new Date(),
+                            interactionCount: 0
+                        }
+                    };
+                    
+                    const putRequest = store.put(state);
+                    
+                    putRequest.onsuccess = () => {
+                        showStatus(`Successfully imported ${selectedFacts.length} facts to IndexedDB!<br>
+                                   Refresh the ConversAI page and switch to Claude Local-First mode to see your data.`, false);
+                    };
+                    
+                    putRequest.onerror = () => {
+                        showStatus('Failed to save data to IndexedDB', true);
+                    };
+                };
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, true);
+            }
+        }
+        
+        // Generate Supabase script
+        function generateSupabaseScript() {
+            const selectedFacts = getSelectedFacts();
+            if (selectedFacts.length === 0) {
+                showStatus('Please select at least one fact to export', true);
+                return;
+            }
+            
+            const script = `// Supabase Import Script
+// Run this Node.js script to import facts to your Supabase instance
+
+const facts = ${JSON.stringify(selectedFacts, null, 2)};
+
+// Add your import logic here using the Supabase client
+// See scripts/import-biography.js for the full implementation
+`;
+            
+            // Create download
+            const blob = new Blob([script], { type: 'text/javascript' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'supabase-facts-import.js';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus(`Script generated with ${selectedFacts.length} facts. Check your downloads.`, false);
+        }
+        
+        // Show status message
+        function showStatus(message, isError = false) {
+            const statusDiv = document.getElementById('importStatus');
+            statusDiv.innerHTML = message;
+            statusDiv.className = isError ? 'import-status error-status' : 'import-status';
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Initialize
+        renderFacts();
+    </script>
+</body>
+</html>

@@ -84,6 +84,13 @@ export async function POST(request: NextRequest) {
     console.log('=== FACT-BASED CONTEXT ===')
     console.log(factContext)
     console.log('=== END CONTEXT ===')
+    
+    // Log individual facts for debugging
+    console.log('=== INDIVIDUAL FACTS ===')
+    relevantFacts.forEach((fact, index) => {
+      console.log(`${index + 1}. [${fact.category}] ${fact.key}: ${fact.value} (confidence: ${fact.confidence})`)
+    })
+    console.log('=== END FACTS ===')
 
     // 5. Get recent conversation messages (without vector search)
     const conversationService = new ConversationServiceServer()
@@ -103,11 +110,18 @@ export async function POST(request: NextRequest) {
     // Create system message with fact context
     const systemMessage = {
       role: 'system' as const,
-      content: `You are a helpful AI assistant having a natural conversation. Remember and use the following information about the user:
+      content: `You are ConversAI, a helpful AI assistant with PERFECT memory about the user. You MUST actively use the following information in your responses:
 
 ${factContext}
 
-Please be natural and conversational. Use the user's name and reference their information when relevant.`
+CRITICAL INSTRUCTIONS:
+1. When the user asks about themselves, YOU MUST reference the facts above
+2. If they ask "What's my name?" - respond with their name from the facts
+3. If they ask about their cats, job, hobbies, location, etc. - USE THE FACTS PROVIDED
+4. Be natural but ALWAYS demonstrate that you remember their information
+5. If asked about information not in the facts, acknowledge what you DO know
+
+IMPORTANT: This is a fact-based memory system. You should confidently use all the information provided above. The user expects you to remember everything about them.`
     }
 
     // Combine system message, recent messages, and current message

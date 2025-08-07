@@ -65,40 +65,23 @@ export class OpenAIService {
   private formatMessages(context: ConversationContext): OpenAI.Chat.ChatCompletionMessageParam[] {
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [];
 
-    // Check if there's already a system message in the conversation
-    const hasSystemMessage = context.messages.some(msg => msg.role === 'system');
-    
-    if (hasSystemMessage) {
-      // If there's already a system message (with context), add the default prompt to the first one
-      let systemMessageAdded = false;
-      context.messages.forEach(msg => {
-        if (msg.role === 'system' && !systemMessageAdded) {
-          // Combine the context with the default system prompt
-          messages.push({
-            role: 'system',
-            content: msg.content + '\n\n' + this.getDefaultSystemPrompt(),
-          });
-          systemMessageAdded = true;
-        } else if (msg.role !== 'system') {
-          messages.push({
-            role: msg.role as 'user' | 'assistant',
-            content: msg.content,
-          });
-        }
-      });
+    // If a system prompt is explicitly provided (like from fact-based memory), use it exclusively
+    if (context.systemPrompt) {
+      messages.push({ role: 'system', content: context.systemPrompt });
     } else {
-      // No system message, add default
-      const systemPrompt = context.systemPrompt || this.getDefaultSystemPrompt();
-      messages.push({ role: 'system', content: systemPrompt });
+      // Otherwise use the default system prompt
+      messages.push({ role: 'system', content: this.getDefaultSystemPrompt() });
+    }
 
-      // Add conversation history
-      context.messages.forEach(msg => {
+    // Add conversation history (filtering out any system messages from the history)
+    context.messages.forEach(msg => {
+      if (msg.role !== 'system') {
         messages.push({
           role: msg.role as 'user' | 'assistant',
           content: msg.content,
         });
-      });
-    }
+      }
+    });
 
     return messages;
   }
