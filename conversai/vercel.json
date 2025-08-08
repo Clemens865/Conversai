@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
+  "outputDirectory": ".next",
   "installCommand": "npm install",
   "regions": ["iad1"],
   "env": {
@@ -10,6 +10,17 @@
   "build": {
     "env": {
       "NEXT_PUBLIC_APP_ENV": "production"
+    }
+  },
+  "functions": {
+    "src/app/api/voice/process/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/voice/process-fact-based/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/voice/process-claude/route.ts": {
+      "maxDuration": 30
     }
   }
 }
