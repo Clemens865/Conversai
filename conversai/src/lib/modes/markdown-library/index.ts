@@ -22,13 +22,12 @@ export class MarkdownLibraryMode extends BaseMode {
   selectedVoice: string = 'alloy'
   
   features: ModeFeatures = {
-    voice: true,
-    text: true,
-    memory: true,
-    multimodal: false,
-    proactive: true,
-    privacy: 'local-first',
-    offline: false
+    voiceProvider: 'OpenAI Realtime API',
+    aiModel: 'GPT-4o Realtime',
+    memoryType: 'Markdown Library (localStorage)',
+    privacy: 'local',
+    offlineSupport: false,
+    realTimeProcessing: true
   }
   
   config: ModeConfig = {
