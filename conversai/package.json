@@ -19,7 +19,10 @@
     "test:ci": "node scripts/run-memory-tests.js --coverage --bail --no-parallel",
     "test:jest": "jest",
     "test:jest:watch": "jest --watch",
-    "test:jest:coverage": "jest --coverage"
+    "test:jest:coverage": "jest --coverage",
+    "proxy": "node src/server/realtime-proxy.js",
+    "proxy:simple": "node src/server/realtime-proxy-simple.js",
+    "dev:all": "./scripts/start-with-proxy.sh"
   },
   "keywords": [],
   "author": "",

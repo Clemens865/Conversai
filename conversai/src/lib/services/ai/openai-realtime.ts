@@ -33,17 +33,22 @@ export class RealtimeAPIService {
       throw new Error('Realtime API is only available in browser environment')
     }
     
-    // Include API key in URL for browser WebSocket
-    const url = `wss://api.openai.com/v1/realtime?model=${this.config.model}`
+    // Production deployment note: Realtime API requires WebSocket authentication
+    // which is not supported in browsers. In production, this will fail gracefully.
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_APP_ENV === 'production'
     
-    // Create WebSocket with subprotocols for auth
-    // OpenAI expects the API key in the Authorization header, but browsers don't support this
-    // So we'll use the Sec-WebSocket-Protocol header as a workaround
-    const ws = new WebSocket(url, [
-      'realtime',
-      `openai-beta.realtime-v1`,
-      `openai-insecure-api-key.${this.config.apiKey}`
-    ])
+    if (isProduction) {
+      throw new Error('OpenAI Realtime API is not available in production due to browser WebSocket limitations. Please use the standard API modes instead.')
+    }
+    
+    // In development, try to use the proxy server
+    const proxyPort = process.env.NEXT_PUBLIC_REALTIME_PROXY_PORT || '8080'
+    const proxyUrl = `ws://localhost:${proxyPort}?model=${this.config.model}`
+    
+    console.log(`Connecting to proxy at:`, proxyUrl)
+    
+    // Create WebSocket connection to proxy (no auth needed)
+    const ws = new WebSocket(proxyUrl)
     
     this.session = {
       sessionId: Date.now().toString(),
