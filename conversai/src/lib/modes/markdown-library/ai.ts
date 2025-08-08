@@ -21,11 +21,14 @@ export class MarkdownLibraryAI implements AIProcessor {
     await this.markdownLibrary.initialize()
     
     const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    console.log('OpenAI API key available:', !!apiKey)
     if (apiKey) {
       this.realtimeAPI = new RealtimeAPIService({ 
         apiKey,
         voice: this.selectedVoice as any // Cast to RealtimeVoice type
       })
+    } else {
+      console.warn('NEXT_PUBLIC_OPENAI_API_KEY not found in environment variables')
     }
   }
   

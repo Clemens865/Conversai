@@ -64,7 +64,9 @@ export class MarkdownLibraryMode extends BaseMode {
       }
     } catch (error) {
       console.error('Failed to connect to Realtime API:', error)
-      throw error
+      console.warn('Markdown Library mode will work with text input only.')
+      // Don't throw - allow mode to work without Realtime API
+      // throw error
     }
   }
   
