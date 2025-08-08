@@ -1,9 +1,6 @@
 {
+  "rootDirectory": "conversai",
   "framework": "nextjs",
-  "buildCommand": "cd conversai && npm install && npm run build",
-  "outputDirectory": "conversai/.next",
-  "installCommand": "cd conversai && npm install",
-  "devCommand": "cd conversai && npm run dev",
   "regions": ["iad1"],
   "env": {
     "NEXT_PUBLIC_APP_ENV": "production"
