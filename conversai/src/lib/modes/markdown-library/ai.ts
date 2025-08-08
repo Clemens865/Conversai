@@ -6,9 +6,14 @@ export class MarkdownLibraryAI implements AIProcessor {
   private markdownLibrary: MarkdownLibraryService
   private realtimeAPI: RealtimeAPIService | null = null
   private ws: WebSocket | null = null
+  private selectedVoice: string = 'alloy'
   
   constructor() {
     this.markdownLibrary = new MarkdownLibraryService()
+  }
+  
+  setVoice(voice: string): void {
+    this.selectedVoice = voice
   }
   
   async initialize(): Promise<void> {
@@ -17,7 +22,10 @@ export class MarkdownLibraryAI implements AIProcessor {
     
     const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
     if (apiKey) {
-      this.realtimeAPI = new RealtimeAPIService({ apiKey })
+      this.realtimeAPI = new RealtimeAPIService({ 
+        apiKey,
+        voice: this.selectedVoice as any // Cast to RealtimeVoice type
+      })
     }
   }
   

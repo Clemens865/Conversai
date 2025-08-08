@@ -1,10 +1,13 @@
 // OpenAI Realtime API Service
 // Note: This is a browser-only implementation as WebSockets work differently in Node.js
 
+// Available voices for OpenAI Realtime API
+export type RealtimeVoice = 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer'
+
 export interface RealtimeConfig {
   apiKey: string
   model?: string
-  voice?: string
+  voice?: RealtimeVoice
 }
 
 export interface RealtimeSession {
@@ -53,7 +56,7 @@ export class RealtimeAPIService {
           session: {
             modalities: ['text', 'audio'],
             instructions,
-            voice: this.config.voice,
+            voice: this.config.voice, // Uses the voice from config (default: 'alloy')
             input_audio_format: 'pcm16',
             output_audio_format: 'pcm16',
             input_audio_transcription: {

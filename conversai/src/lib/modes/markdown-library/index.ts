@@ -11,6 +11,16 @@ export class MarkdownLibraryMode extends BaseMode {
   icon = '📚'
   badges = ['Realtime API', 'Full Context', 'Markdown-Based', 'Beta']
   
+  // Voice selection for OpenAI Realtime API
+  // Available voices: 'alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'
+  // - alloy: Neutral and balanced (default)
+  // - echo: Male, warm and conversational
+  // - fable: British accent, storyteller quality
+  // - onyx: Deep, authoritative male voice
+  // - nova: Female, friendly and upbeat
+  // - shimmer: Female, soft and gentle
+  selectedVoice: string = 'alloy'
+  
   features: ModeFeatures = {
     voice: true,
     text: true,
@@ -41,7 +51,10 @@ export class MarkdownLibraryMode extends BaseMode {
   
   protected async onInitialize(): Promise<void> {
     console.log('Initializing Markdown Library mode...')
-    // Mode-specific initialization if needed
+    // Pass selected voice to AI processor
+    if ('setVoice' in this.ai) {
+      (this.ai as any).setVoice(this.selectedVoice)
+    }
   }
   
   protected async onCleanup(): Promise<void> {
