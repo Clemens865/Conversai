@@ -33,12 +33,17 @@ export class RealtimeAPIService {
       throw new Error('Realtime API is only available in browser environment')
     }
     
+    // Include API key in URL for browser WebSocket
     const url = `wss://api.openai.com/v1/realtime?model=${this.config.model}`
     
-    // Create WebSocket with auth headers
-    // Note: Browser WebSocket doesn't support custom headers directly
-    // Auth must be sent after connection
-    const ws = new WebSocket(url)
+    // Create WebSocket with subprotocols for auth
+    // OpenAI expects the API key in the Authorization header, but browsers don't support this
+    // So we'll use the Sec-WebSocket-Protocol header as a workaround
+    const ws = new WebSocket(url, [
+      'realtime',
+      `openai-beta.realtime-v1`,
+      `openai-insecure-api-key.${this.config.apiKey}`
+    ])
     
     this.session = {
       sessionId: Date.now().toString(),
@@ -77,11 +82,25 @@ export class RealtimeAPIService {
       
       ws.onerror = (error) => {
         console.error('WebSocket error:', error)
-        reject(new Error('Failed to connect to Realtime API'))
+        console.error('WebSocket readyState:', ws.readyState)
+        console.error('Make sure your OpenAI API key is set in NEXT_PUBLIC_OPENAI_API_KEY')
+        reject(new Error('Failed to connect to Realtime API. Check console for details.'))
       }
       
-      ws.onclose = () => {
+      ws.onmessage = (event) => {
+        console.log('Realtime API message:', event.data)
+        try {
+          const message = JSON.parse(event.data)
+          console.log('Parsed message type:', message.type)
+        } catch (e) {
+          console.error('Failed to parse message:', e)
+        }
+      }
+      
+      ws.onclose = (event) => {
         console.log('Disconnected from Realtime API')
+        console.log('Close code:', event.code)
+        console.log('Close reason:', event.reason)
         if (this.session) {
           this.session.isConnected = false
         }

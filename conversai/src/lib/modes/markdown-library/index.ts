@@ -54,6 +54,18 @@ export class MarkdownLibraryMode extends BaseMode {
     if ('setVoice' in this.ai) {
       (this.ai as any).setVoice(this.selectedVoice)
     }
+    
+    // Connect to OpenAI Realtime API
+    try {
+      console.log('Connecting to OpenAI Realtime API...')
+      if ('connectRealtime' in this.ai) {
+        await (this.ai as any).connectRealtime()
+        console.log('Connected to OpenAI Realtime API')
+      }
+    } catch (error) {
+      console.error('Failed to connect to Realtime API:', error)
+      throw error
+    }
   }
   
   protected async onCleanup(): Promise<void> {
@@ -63,5 +75,68 @@ export class MarkdownLibraryMode extends BaseMode {
   
   protected async onError(error: Error): Promise<void> {
     console.error('Markdown Library mode error:', error)
+  }
+  
+  protected async onProcessAudio(audioBlob: Blob, conversationId: string): Promise<ProcessResult> {
+    console.log('Processing audio in Markdown Library mode...')
+    
+    // For now, return a placeholder response
+    // The real implementation would:
+    // 1. Convert Blob to ArrayBuffer
+    // 2. Send to OpenAI Realtime API via WebSocket
+    // 3. Handle the streaming response
+    
+    const audioBuffer = await audioBlob.arrayBuffer()
+    console.log('Audio buffer size:', audioBuffer.byteLength)
+    
+    // Send audio to Realtime API
+    if ('sendAudio' in this.ai && this.ai) {
+      try {
+        await (this.ai as any).sendAudio(audioBuffer)
+      } catch (error) {
+        console.error('Failed to send audio to Realtime API:', error)
+      }
+    }
+    
+    return {
+      transcript: 'Audio processing not fully implemented',
+      response: 'The OpenAI Realtime API connection is still being implemented. Audio was captured but not processed.',
+      metadata: {
+        processingTime: 0,
+        mode: 'markdown-library'
+      }
+    }
+  }
+  
+  protected async onProcessText(text: string, conversationId: string): Promise<ProcessResult> {
+    console.log('Processing text in Markdown Library mode:', text)
+    
+    // Get AI response with markdown context
+    const result = await this.ai.processText(text, {
+      conversationId,
+      userId: 'current-user',
+      messages: []
+    })
+    
+    if (result.success && result.data) {
+      return {
+        transcript: text,
+        response: result.data.text,
+        metadata: {
+          processingTime: Date.now(),
+          mode: 'markdown-library',
+          context: result.data.context
+        }
+      }
+    }
+    
+    return {
+      transcript: text,
+      response: 'Sorry, I encountered an error processing your message.',
+      metadata: {
+        processingTime: 0,
+        error: result.error
+      }
+    }
   }
 }
