@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Testing
+tests/
+*.test.ts
+*.test.js
+jest.config.js
+coverage/
+
+# Development
+.env.local
+.env.development
+*.log
+dev-output.log
+dev.log
+
+# Scripts (except build-related)
+scripts/test-*.js
+scripts/check-*.js
+scripts/debug-*.js
+scripts/import-*.js
+scripts/insert-*.js
+scripts/run-*.js
+scripts/diagnose-*.js
+scripts/fix-*.js
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Mockups
+mockups/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

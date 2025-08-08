@@ -1,0 +1,4 @@
+# robots.txt for ConversAI
+User-agent: *
+Allow: /
+Sitemap: https://conversai-tau.vercel.app/sitemap.xml
