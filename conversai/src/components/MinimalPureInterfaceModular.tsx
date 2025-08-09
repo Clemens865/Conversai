@@ -253,7 +253,7 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
       setAnimationActive(true);
       recordingStartTimeRef.current = Date.now();
       
-      // Special handling for Claude Local-First mode
+      // Special handling for modes with transcript callbacks
       if (currentMode.id === 'claude-local-first') {
         const voice = currentMode.voice as ClaudeLocalFirstVoice;
         
@@ -266,6 +266,26 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
           // Process the transcript
           await processTranscript(transcript);
         });
+        
+        await voice.startRecording();
+      } else if (currentMode.id === 'markdown-library') {
+        // Markdown Library mode uses Web Speech API
+        const voice = currentMode.voice as any;
+        
+        if (voice.setTranscriptCallback) {
+          voice.setTranscriptCallback(async (transcript: string) => {
+            setIsListening(false);
+            setStatusText('processing');
+            setAnimationActive(false);
+            
+            // Process the transcript through the mode
+            const mode = currentMode as any;
+            if (mode.processTranscript) {
+              await mode.processTranscript(transcript);
+              setStatusText('listening');
+            }
+          });
+        }
         
         await voice.startRecording();
       } else {
