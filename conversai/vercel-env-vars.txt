@@ -1,0 +1,23 @@
+# Vercel Environment Variables
+# Add these in your Vercel project settings: Settings > Environment Variables
+
+# ConversAI Supabase
+NEXT_PUBLIC_CONVERSAI_SUPABASE_URL=https://mjwztzhdefgfgedyynzc.supabase.co
+NEXT_PUBLIC_CONVERSAI_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qd3p0emhkZWZnZmdlZHl5bnpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwODM5MzAsImV4cCI6MjA2OTY1OTkzMH0.TNmjiMnCnpqj2Lj9Wa7aokfvZv2EcdZFiZd-tjbqlD4
+CONVERSAI_SUPABASE_SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1qd3p0emhkZWZnZmdlZHl5bnpjIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDA4MzkzMCwiZXhwIjoyMDY5NjU5OTMwfQ.Di02qODekL0OKdvC1xFWGC1vcKEpvNs_uodEZ9V7utI
+CONVERSAI_SUPABASE_DB_URL=[REPLACE_WITH_FULL_DB_URL_INCLUDING_PASSWORD]
+CONVERSAI_SUPABASE_STORAGE_BUCKET=conversai-documents
+
+# RAG Service (Update URL when deployed)
+RAG_SERVICE_URL=https://your-rag-service.railway.app
+EMBEDDING_MODEL_NAME=text-embedding-ada-002
+EMBEDDING_DIM=1536
+RAG_CHUNK_SIZE=500
+RAG_CHUNK_OVERLAP=50
+
+# Keep existing variables:
+# - NEXT_PUBLIC_ELEVENLABS_API_KEY
+# - NEXT_PUBLIC_OPENAI_API_KEY
+# - OPENAI_API_KEY
+# - NEXT_PUBLIC_DEEPGRAM_API_KEY
+# - ANTHROPIC_API_KEY
