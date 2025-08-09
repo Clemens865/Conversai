@@ -1,0 +1,6 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# Keep only the final WASM build output
+!../src/wasm/markdown_processor/

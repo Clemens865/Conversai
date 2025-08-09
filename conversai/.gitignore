@@ -41,3 +41,6 @@ pnpm-lock.yaml
 
 # MCP configuration (contains tokens)
 .mcp.json
+# Rust WASM build artifacts
+wasm-markdown/target/
+wasm-markdown/Cargo.lock

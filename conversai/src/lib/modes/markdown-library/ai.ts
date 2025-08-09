@@ -1,10 +1,13 @@
 import { AIProcessor, ProcessResult, ConversationContext } from '../types'
 import { MarkdownLibraryService } from '@/lib/services/memory/markdownLibraryClient'
+import { RustMarkdownService } from '@/lib/services/markdown/rust-processor'
 import { RealtimeAPIService } from '@/lib/services/ai/openai-realtime'
 import { MarkdownLibraryFallbackAI } from './fallback-ai'
 
 export class MarkdownLibraryAI implements AIProcessor {
   private markdownLibrary: MarkdownLibraryService
+  private rustProcessor: RustMarkdownService | null = null
+  private useRustProcessor: boolean = true // Default to using Rust for better performance
   private realtimeAPI: RealtimeAPIService | null = null
   private fallbackAI: MarkdownLibraryFallbackAI | null = null
   private ws: WebSocket | null = null
@@ -13,6 +16,11 @@ export class MarkdownLibraryAI implements AIProcessor {
   
   constructor() {
     this.markdownLibrary = new MarkdownLibraryService()
+    
+    // Try to initialize Rust processor
+    if (this.useRustProcessor) {
+      this.rustProcessor = new RustMarkdownService()
+    }
   }
   
   setVoice(voice: string): void {
@@ -21,7 +29,24 @@ export class MarkdownLibraryAI implements AIProcessor {
   
   async initialize(): Promise<void> {
     console.log('Initializing Markdown Library AI processor')
-    await this.markdownLibrary.initialize()
+    
+    // Initialize Rust processor if available
+    if (this.rustProcessor) {
+      try {
+        await this.rustProcessor.initialize()
+        console.log('✅ Rust processor initialized successfully')
+        this.useRustProcessor = true
+      } catch (error) {
+        console.error('Failed to initialize Rust processor, falling back to JS:', error)
+        this.useRustProcessor = false
+      }
+    }
+    
+    // Fall back to JS implementation if Rust fails
+    if (!this.useRustProcessor) {
+      await this.markdownLibrary.initialize()
+      console.log('Using JavaScript markdown processor')
+    }
     
     // Check if we're in production (Realtime API doesn't work in browsers)
     const isProduction = typeof window !== 'undefined' && window.location && !window.location.hostname.includes('localhost')
@@ -74,8 +99,17 @@ export class MarkdownLibraryAI implements AIProcessor {
     try {
       console.log('Processing text with AI:', text)
       
-      // Load relevant markdown context
-      const markdownContext = await this.markdownLibrary.loadRelevantContext(text)
+      // Load relevant markdown context using Rust or JS processor
+      let markdownContext: string
+      
+      if (this.useRustProcessor && this.rustProcessor) {
+        console.log('🦀 Using Rust processor for context retrieval')
+        markdownContext = await this.rustProcessor.getRelevantContext(text, 10)
+      } else {
+        console.log('📚 Using JavaScript processor for context retrieval')
+        markdownContext = await this.markdownLibrary.loadRelevantContext(text)
+      }
+      
       console.log('Loaded markdown context length:', markdownContext?.length || 0)
       
       // Check if we have the API key
@@ -173,7 +207,13 @@ export class MarkdownLibraryAI implements AIProcessor {
     
     try {
       // Load full context for initial connection
-      const fullContext = await this.markdownLibrary.loadFullContext()
+      let fullContext: string
+      
+      if (this.useRustProcessor && this.rustProcessor) {
+        fullContext = await this.rustProcessor.getFullContext()
+      } else {
+        fullContext = await this.markdownLibrary.loadFullContext()
+      }
       
       // Connect to Realtime API with context
       await this.realtimeAPI.connect(`You are ConversAI, a helpful AI assistant with access to detailed personal information about the user.
