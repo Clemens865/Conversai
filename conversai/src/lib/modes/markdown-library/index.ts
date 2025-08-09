@@ -41,8 +41,12 @@ export class MarkdownLibraryMode extends BaseMode {
   ai = new MarkdownLibraryAI()
   storage = new MarkdownLibraryStorage()
   
-  async initialize(): Promise<void> {
-    await super.initialize()
+  async onInitialize(): Promise<void> {
+    // Initialize voice processor
+    await this.voice.initialize()
+    
+    // Initialize AI processor
+    await this.ai.initialize()
     
     // Set the voice for AI if supported
     if (this.ai.setVoice) {
