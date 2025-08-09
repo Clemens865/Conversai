@@ -23,6 +23,10 @@ export class MarkdownLibraryAI implements AIProcessor {
     console.log('Initializing Markdown Library AI processor')
     await this.markdownLibrary.initialize()
     
+    // Check if we're in production (Realtime API doesn't work in browsers)
+    const isProduction = typeof window !== 'undefined' && window.location && !window.location.hostname.includes('localhost')
+    console.log('Environment: ', isProduction ? 'production' : 'development')
+    
     // Check environment variable in different ways
     const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
     console.log('Environment check:')
@@ -31,17 +35,24 @@ export class MarkdownLibraryAI implements AIProcessor {
     console.log('- All NEXT_PUBLIC vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC_')))
     
     if (apiKey && apiKey !== 'undefined' && apiKey !== '') {
-      console.log('Creating RealtimeAPIService...')
-      try {
-        this.realtimeAPI = new RealtimeAPIService({ 
-          apiKey,
-          voice: this.selectedVoice as any // Cast to RealtimeVoice type
-        })
-        console.log('RealtimeAPIService created successfully')
-      } catch (error) {
-        console.error('Failed to create RealtimeAPIService:', error)
-        console.log('Falling back to standard OpenAI API...')
+      // In production, always use fallback (Realtime API WebSocket doesn't work in browsers)
+      if (isProduction) {
+        console.log('Production environment detected - using fallback OpenAI API')
         this.useFallback = true
+      } else {
+        // In development, try Realtime API first
+        console.log('Creating RealtimeAPIService...')
+        try {
+          this.realtimeAPI = new RealtimeAPIService({ 
+            apiKey,
+            voice: this.selectedVoice as any // Cast to RealtimeVoice type
+          })
+          console.log('RealtimeAPIService created successfully')
+        } catch (error) {
+          console.error('Failed to create RealtimeAPIService:', error)
+          console.log('Falling back to standard OpenAI API...')
+          this.useFallback = true
+        }
       }
       
       // Always create fallback AI as backup

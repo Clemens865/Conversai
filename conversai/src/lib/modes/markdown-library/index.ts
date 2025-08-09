@@ -99,4 +99,18 @@ export class MarkdownLibraryMode extends BaseMode {
       }
     }
   }
+  
+  async onCleanup(): Promise<void> {
+    // Clean up resources
+    if (this.ai && this.ai.cleanup) {
+      await this.ai.cleanup()
+    }
+    if (this.voice && this.voice.cleanup) {
+      await this.voice.cleanup()
+    }
+    if (this.storage && this.storage.cleanup) {
+      await this.storage.cleanup()
+    }
+    console.log('Markdown Library mode cleaned up')
+  }
 }
