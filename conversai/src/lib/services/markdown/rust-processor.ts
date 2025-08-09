@@ -10,11 +10,19 @@ export class RustMarkdownService {
     console.log('🦀 Initializing Rust Markdown Service...')
     
     try {
-      // Initialize WASM module
-      await init()
+      // Initialize WASM module with the correct path
+      const wasmPath = '/wasm/markdown_processor/markdown_processor_bg.wasm'
+      console.log('Loading WASM from:', wasmPath)
+      
+      await init(wasmPath).catch(async () => {
+        // Try without explicit path (will use default)
+        console.log('Trying default WASM path...')
+        await init()
+      })
       
       // Create processor instance
       this.processor = new MarkdownProcessor()
+      console.log('✅ WASM module loaded successfully')
       
       // Load existing markdown from localStorage
       const stored = localStorage.getItem('markdown-library')

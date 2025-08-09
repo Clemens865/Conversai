@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import MinimalPureInterfaceModular from '@/components/MinimalPureInterfaceModular'
 import AuthForm from '@/components/AuthForm'
+import MarkdownLibraryEditor from '@/components/MarkdownLibraryEditor'
 
 export default function Home() {
   const { user, loading, signOut } = useAuth()
@@ -61,6 +62,7 @@ export default function Home() {
   return (
     <>
       <MinimalPureInterfaceModular user={user} />
+      <MarkdownLibraryEditor />
       
       <button
         onClick={() => signOut()}
