@@ -1,0 +1,68 @@
+[package]
+name = "conversai-rag"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web framework
+axum = "0.7"
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "json", "chrono"] }
+pgvector = "0.3"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "multipart"] }
+
+# Markdown parsing
+pulldown-cmark = "0.9"
+comrak = "0.18"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Utils
+uuid = { version = "1.4", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+hex = "0.4"
+bytes = "1.5"
+futures = "0.3"
+
+# Environment
+dotenv = "0.15"
+
+# Caching
+moka = { version = "0.12", features = ["future"] }
+
+# Math for reranking
+nalgebra = "0.32"
+
+# Text processing
+tiktoken-rs = "0.5"
+regex = "1.10"
+
+# Optional: ONNX Runtime for local embeddings/reranking
+# ort = { version = "2.0", optional = true }
+
+[features]
+default = []
+local-embeddings = []
+# local-embeddings = ["ort"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
