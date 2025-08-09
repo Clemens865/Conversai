@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd conversai && npm install && npm run build",
-  "outputDirectory": "conversai/.next",
-  "installCommand": "cd conversai && npm install",
-  "framework": "nextjs"
-}
