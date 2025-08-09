@@ -9,22 +9,12 @@ tests/
 jest.config.js
 coverage/
 
-# Development
+# Development files
 .env.local
 .env.development
 *.log
 dev-output.log
 dev.log
-
-# Scripts (except build-related)
-scripts/test-*.js
-scripts/check-*.js
-scripts/debug-*.js
-scripts/import-*.js
-scripts/insert-*.js
-scripts/run-*.js
-scripts/diagnose-*.js
-scripts/fix-*.js
 
 # Documentation
 docs/
@@ -34,9 +24,15 @@ docs/
 # Mockups
 mockups/
 
-# Git
-.git/
-.gitignore
+# Scripts (keep only necessary ones for build)
+scripts/test-*.js
+scripts/check-*.js
+scripts/debug-*.js
+scripts/import-*.js
+scripts/insert-*.js
+scripts/run-*.js
+scripts/diagnose-*.js
+scripts/fix-*.js
 
 # IDE
 .vscode/
@@ -46,3 +42,7 @@ mockups/
 tmp/
 temp/
 *.tmp
+
+# Git
+.git/
+.gitignore
