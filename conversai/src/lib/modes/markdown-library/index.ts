@@ -62,6 +62,8 @@ export class MarkdownLibraryMode extends BaseMode {
   
   async processTranscript(transcript: string): Promise<ProcessResult> {
     try {
+      console.log('Processing transcript:', transcript)
+      
       // Process through AI with markdown context
       const result = await this.ai.processText(transcript, {
         conversationId: Date.now().toString(),
@@ -69,15 +71,28 @@ export class MarkdownLibraryMode extends BaseMode {
         sessionId: 'session'
       })
       
+      console.log('AI response result:', result)
+      
       if (result.success && result.data?.text) {
+        console.log('Speaking response:', result.data.text)
         // Use Web Speech synthesis for response
         const voice = this.voice as MarkdownLibraryVoice
         await voice.speak(result.data.text)
+      } else {
+        console.error('No response text generated')
+        // Provide a fallback response
+        const fallbackResponse = "I'm having trouble processing your request. Please try again."
+        const voice = this.voice as MarkdownLibraryVoice
+        await voice.speak(fallbackResponse)
       }
       
       return result
     } catch (error) {
       console.error('Error processing transcript:', error)
+      // Speak an error message
+      const voice = this.voice as MarkdownLibraryVoice
+      await voice.speak("Sorry, I encountered an error processing your request.")
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

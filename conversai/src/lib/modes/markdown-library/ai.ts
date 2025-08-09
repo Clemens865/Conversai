@@ -61,25 +61,59 @@ export class MarkdownLibraryAI implements AIProcessor {
     context: ConversationContext
   ): Promise<ProcessResult> {
     try {
+      console.log('Processing text with AI:', text)
+      
       // Load relevant markdown context
       const markdownContext = await this.markdownLibrary.loadRelevantContext(text)
+      console.log('Loaded markdown context length:', markdownContext?.length || 0)
+      
+      // Check if we have the API key
+      const apiKey = typeof window !== 'undefined' 
+        ? (window as any).ENV?.NEXT_PUBLIC_OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY
+        : process.env.NEXT_PUBLIC_OPENAI_API_KEY
+      
+      console.log('API key available:', !!apiKey)
+      console.log('Using fallback:', this.useFallback)
+      console.log('Fallback AI available:', !!this.fallbackAI)
       
       // Use fallback AI if available
-      if (this.fallbackAI && this.useFallback) {
+      if (this.fallbackAI && this.useFallback && apiKey) {
         console.log('Using fallback AI for response generation...')
-        const response = await this.fallbackAI.generateResponse(text, markdownContext)
-        
-        return {
-          success: true,
-          data: {
-            text: response,
-            context: markdownContext
+        try {
+          const response = await this.fallbackAI.generateResponse(text, markdownContext)
+          console.log('Generated response:', response)
+          
+          return {
+            success: true,
+            data: {
+              text: response,
+              context: markdownContext
+            }
           }
+        } catch (aiError) {
+          console.error('Fallback AI error:', aiError)
+          // Fall through to placeholder response
         }
       }
       
-      // Otherwise return a placeholder (Realtime API would be used here)
-      const response = `I understand you said: "${text}". I have access to your markdown library with information about you.`
+      // Generate a simple response based on the question
+      let response = `I heard you say: "${text}". `
+      
+      // Add context-aware response based on keywords
+      if (text.toLowerCase().includes('name')) {
+        response += "I have information about names in my markdown library. Let me check what I know about you."
+      } else if (text.toLowerCase().includes('who') || text.toLowerCase().includes('what')) {
+        response += "I can help answer questions using the information in my markdown knowledge base."
+      } else {
+        response += "I have access to your markdown library with various information that might help."
+      }
+      
+      // Add a bit of the markdown context if available
+      if (markdownContext && markdownContext.length > 0) {
+        response += " Based on my knowledge, I can see relevant information has been found."
+      }
+      
+      console.log('Final response:', response)
       
       return {
         success: true,
