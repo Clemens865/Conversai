@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MarkdownLibraryService } from '@/lib/services/memory/markdownLibraryClient'
+import { populateClemensData } from '@/lib/services/memory/populateMarkdown'
 
 interface MarkdownFile {
   id: string
@@ -99,6 +100,20 @@ export default function MarkdownLibraryEditor() {
     input.click()
   }
 
+  const handleAutoPopulate = async () => {
+    try {
+      const confirmed = confirm('This will populate your markdown library with Clemens Hönig\'s biographical data. Continue?')
+      if (!confirmed) return
+      
+      await populateClemensData()
+      await loadFiles()
+      alert('Your biographical data has been successfully loaded!')
+    } catch (error) {
+      console.error('Error populating data:', error)
+      alert('Failed to populate data. Please try again.')
+    }
+  }
+
   const handleQuickSetup = () => {
     const name = prompt('What is your name?')
     const age = prompt('What is your age?')
@@ -151,11 +166,20 @@ ${hobbies ? hobbies.split(',').map(h => `- ${h.trim()}`).join('\n') : '- No hobb
 
   return (
     <div className="fixed bottom-20 right-4 z-50">
-      {/* Toggle Button */}
+      {/* Toggle Button - Made more visible */}
       <button
         onClick={() => setShowEditor(!showEditor)}
-        className="bg-blue-500 hover:bg-blue-600 text-white rounded-full p-3 shadow-lg transition-all"
-        title="Edit Markdown Library"
+        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-4 shadow-2xl transition-all transform hover:scale-110 animate-pulse"
+        style={{
+          width: '60px',
+          height: '60px',
+          fontSize: '28px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '2px solid white'
+        }}
+        title="Edit Markdown Library - Click to manage your personal information"
       >
         📚
       </button>
@@ -177,6 +201,12 @@ ${hobbies ? hobbies.split(',').map(h => `- ${h.trim()}`).join('\n') : '- No hobb
             
             {/* Action Buttons */}
             <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={handleAutoPopulate}
+                className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 font-bold animate-pulse"
+              >
+                🚀 Load Clemens Data
+              </button>
               <button
                 onClick={handleQuickSetup}
                 className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600"
