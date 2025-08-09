@@ -4,6 +4,25 @@ import { useState, useEffect } from 'react'
 import { MarkdownLibraryService } from '@/lib/services/memory/markdownLibraryClient'
 import { populateClemensData } from '@/lib/services/memory/populateMarkdown'
 
+// Add global styles for pulse animation
+if (typeof window !== 'undefined') {
+  const style = document.createElement('style')
+  style.textContent = `
+    @keyframes pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(147, 51, 234, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 20px rgba(147, 51, 234, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(147, 51, 234, 0);
+      }
+    }
+  `
+  document.head.appendChild(style)
+}
+
 interface MarkdownFile {
   id: string
   category: string
@@ -165,19 +184,21 @@ ${hobbies ? hobbies.split(',').map(h => `- ${h.trim()}`).join('\n') : '- No hobb
   }
 
   return (
-    <div className="fixed bottom-20 right-4 z-50">
-      {/* Toggle Button - Made more visible */}
+    <div className="fixed bottom-4 right-4" style={{ zIndex: 9999 }}>
+      {/* Toggle Button - Made more visible and properly positioned */}
       <button
         onClick={() => setShowEditor(!showEditor)}
-        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full p-4 shadow-2xl transition-all transform hover:scale-110 animate-pulse"
+        className="bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white rounded-full shadow-2xl transition-all transform hover:scale-110"
         style={{
-          width: '60px',
-          height: '60px',
-          fontSize: '28px',
+          width: '70px',
+          height: '70px',
+          fontSize: '32px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          border: '2px solid white'
+          border: '3px solid white',
+          animation: 'pulse 2s infinite',
+          cursor: 'pointer'
         }}
         title="Edit Markdown Library - Click to manage your personal information"
       >
@@ -186,7 +207,17 @@ ${hobbies ? hobbies.split(',').map(h => `- ${h.trim()}`).join('\n') : '- No hobb
 
       {/* Editor Panel */}
       {showEditor && (
-        <div className="absolute bottom-16 right-0 w-96 h-[600px] bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col">
+        <div 
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col"
+          style={{
+            position: 'fixed',
+            bottom: '90px',
+            right: '20px',
+            width: '400px',
+            height: '600px',
+            maxHeight: '80vh',
+            zIndex: 10000
+          }}>
           {/* Header */}
           <div className="p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex justify-between items-center mb-2">
