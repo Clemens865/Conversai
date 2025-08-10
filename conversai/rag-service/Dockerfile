@@ -3,11 +3,11 @@ FROM rust:1.75 as builder
 
 WORKDIR /app
 
-# Copy manifests
-COPY Cargo.toml Cargo.lock ./
+# Copy manifests from the rag-service directory
+COPY conversai/rag-service/Cargo.toml conversai/rag-service/Cargo.lock ./
 
-# Copy source code
-COPY src ./src
+# Copy source code from the rag-service directory
+COPY conversai/rag-service/src ./src
 
 # Build for release
 RUN cargo build --release
