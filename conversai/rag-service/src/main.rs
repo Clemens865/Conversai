@@ -32,14 +32,30 @@ async fn main() -> anyhow::Result<()> {
 
     // Database connection
     let database_url = env::var("CONVERSAI_SUPABASE_DB_URL")
-        .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/conversai".to_string());
+        .or_else(|_| env::var("DATABASE_URL"))
+        .unwrap_or_else(|_| {
+            info!("No database URL found in environment variables");
+            info!("Looking for CONVERSAI_SUPABASE_DB_URL or DATABASE_URL");
+            "postgresql://postgres:postgres@localhost:5432/conversai".to_string()
+        });
     
-    let pool = PgPoolOptions::new()
+    info!("Attempting to connect to database...");
+    
+    let pool = match PgPoolOptions::new()
         .max_connections(5)
+        .acquire_timeout(std::time::Duration::from_secs(10))
         .connect(&database_url)
-        .await?;
-
-    info!("Connected to database");
+        .await {
+            Ok(pool) => {
+                info!("Successfully connected to database");
+                pool
+            },
+            Err(e) => {
+                eprintln!("Failed to connect to database: {}", e);
+                eprintln!("Database URL pattern: postgres://user:pass@host:port/database");
+                return Err(anyhow::anyhow!("Database connection failed: {}", e));
+            }
+        };
 
     // Build our application with routes
     let cors = CorsLayer::new()
@@ -61,10 +77,15 @@ async fn main() -> anyhow::Result<()> {
         .with_state(pool);
 
     // Run server - use PORT env var from Railway or default to 3030
-    let port: u16 = env::var("PORT")
-        .unwrap_or_else(|_| "3030".to_string())
-        .parse()
-        .expect("PORT must be a number");
+    let port_str = env::var("PORT").unwrap_or_else(|_| {
+        info!("PORT environment variable not found, using default 3030");
+        "3030".to_string()
+    });
+    
+    let port: u16 = port_str.parse()
+        .expect("PORT must be a valid number");
+    
+    info!("Starting server on port {}", port);
     
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("RAG service listening on {}", addr);

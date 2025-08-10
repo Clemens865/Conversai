@@ -3,11 +3,11 @@ FROM rust:latest as builder
 
 WORKDIR /app
 
-# Copy manifests from the rag-service directory
-COPY conversai/rag-service/Cargo.toml conversai/rag-service/Cargo.lock ./
+# Copy manifests (Railway uses rag-service as root)
+COPY Cargo.toml Cargo.lock ./
 
-# Copy source code from the rag-service directory
-COPY conversai/rag-service/src ./src
+# Copy source code
+COPY src ./src
 
 # Build for release
 RUN cargo build --release
@@ -30,8 +30,8 @@ COPY --from=builder /app/target/release/conversai-rag /app/conversai-rag
 RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port - Railway will set PORT env var
-EXPOSE 8080
+# Railway will dynamically assign PORT env var
+# No need to EXPOSE a specific port
 
 # Set environment variables (will be overridden by deployment platform)
 ENV RUST_LOG=info
