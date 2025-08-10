@@ -268,11 +268,22 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
         });
         
         await voice.startRecording();
-      } else if (currentMode.id === 'markdown-library') {
-        // Markdown Library mode uses Web Speech API
+      } else if (currentMode.id === 'markdown-library' || currentMode.id === 'rag-system') {
+        // Markdown Library and RAG System modes use Web Speech API
         const voice = currentMode.voice as any;
         
-        if (voice.setTranscriptCallback) {
+        // For RAG System mode, pass the transcript processor as callback
+        if (currentMode.id === 'rag-system') {
+          await voice.startRecording(async (transcript: string) => {
+            setIsListening(false);
+            setStatusText('processing');
+            setAnimationActive(false);
+            
+            // Process the transcript
+            await processTranscript(transcript);
+          });
+        } else if (voice.setTranscriptCallback) {
+          // Markdown Library mode
           voice.setTranscriptCallback(async (transcript: string) => {
             setIsListening(false);
             setStatusText('processing');
@@ -285,9 +296,8 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
               setStatusText('listening');
             }
           });
+          await voice.startRecording();
         }
-        
-        await voice.startRecording();
       } else {
         // Standard recording for other modes
         await currentMode.voice.startRecording();

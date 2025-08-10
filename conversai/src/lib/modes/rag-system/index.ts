@@ -40,9 +40,9 @@ export class RAGSystemMode implements ConversationMode {
     You have access to a knowledge base stored in a vector database and can retrieve relevant information to answer questions accurately.
     When answering, you combine retrieved context with your general knowledge to provide comprehensive, accurate responses.`,
     ragConfig: {
-      // Use the actual Railway service URL, not the dashboard URL
+      // Use the Railway service URL from environment or fallback to localhost
       serviceUrl: process.env.NEXT_PUBLIC_CONVERSAI_RAG_SERVICE_URL || 
-                  'https://conversai-rust-production.up.railway.app' || 
+                  'https://conversai-production.up.railway.app' || 
                   'http://localhost:3456',
       maxChunks: 5,
       similarityThreshold: 0.7

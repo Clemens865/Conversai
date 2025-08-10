@@ -67,11 +67,17 @@ class RAGVoiceService implements VoiceService {
   }
 
   // Alias methods for compatibility with the UI
-  async startRecording(): Promise<void> {
+  async startRecording(onTranscript?: (text: string) => void): Promise<void> {
     // The UI expects startRecording, but we use startListening
-    // Create a default callback that does nothing for now
+    // Use the provided callback or a default one
+    const callback = onTranscript || ((text) => console.log('Transcript:', text));
+    
     await this.startListening((text, isFinal) => {
       console.log('Transcript:', text, 'Final:', isFinal);
+      // Call the UI's callback when we get a final transcript
+      if (isFinal && onTranscript) {
+        onTranscript(text);
+      }
     });
   }
 
