@@ -3,11 +3,11 @@ FROM rust:latest as builder
 
 WORKDIR /app
 
-# Copy manifests (Railway uses rag-service as root)
-COPY Cargo.toml Cargo.lock ./
+# Copy manifests from the rag-service directory (Railway builds from repo root)
+COPY conversai/rag-service/Cargo.toml conversai/rag-service/Cargo.lock ./
 
-# Copy source code
-COPY src ./src
+# Copy source code from the rag-service directory
+COPY conversai/rag-service/src ./src
 
 # Build for release
 RUN cargo build --release
