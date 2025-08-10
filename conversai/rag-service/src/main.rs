@@ -1,9 +1,11 @@
 use axum::{
-    http::StatusCode,
+    http::{Method, header},
+    response::Json,
     routing::{get, post},
     Router,
 };
 use dotenv::dotenv;
+use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::net::SocketAddr;
@@ -40,17 +42,22 @@ async fn main() -> anyhow::Result<()> {
     info!("Connected to database");
 
     // Build our application with routes
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
+        .expose_headers([header::CONTENT_TYPE]);
+
     let app = Router::new()
         .route("/health", get(health_check))
+        .route("/api/ingest", post(ingest::handle_ingest))
+        .route("/api/query", post(query::handle_query))
+        .route("/api/feedback", post(handlers::feedback::handle_feedback))
+        // Legacy routes for backward compatibility
         .route("/ingest", post(ingest::handle_ingest))
         .route("/query", post(query::handle_query))
         .route("/feedback", post(handlers::feedback::handle_feedback))
-        .layer(
-            CorsLayer::new()
-                .allow_origin(Any)
-                .allow_methods(Any)
-                .allow_headers(Any),
-        )
+        .layer(cors)
         .with_state(pool);
 
     // Run server - use PORT env var from Railway or default to 3030
@@ -68,6 +75,10 @@ async fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn health_check() -> StatusCode {
-    StatusCode::OK
+async fn health_check() -> Json<serde_json::Value> {
+    Json(json!({
+        "status": "healthy",
+        "service": "conversai-rag",
+        "version": "1.0.0"
+    }))
 }
