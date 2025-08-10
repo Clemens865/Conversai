@@ -214,6 +214,14 @@ class ModeRegistry {
             icon: '📚',
             badges: ['Realtime API', 'Full Context', 'Markdown-Based', 'Beta']
           };
+        } else if (modeId === 'rag-system') {
+          modeInfo = {
+            ...modeInfo,
+            name: 'RAG System (Production)',
+            description: 'Production-ready RAG with Rust backend. Stack: Web Speech API + Rust RAG Service + Supabase pgvector',
+            icon: '🚀',
+            badges: ['Production RAG', 'Hybrid Search', 'Self-Hosted', 'Scalable']
+          };
         }
         
         metadata.push(modeInfo);
@@ -244,6 +252,11 @@ export async function registerAllModes() {
     const { MarkdownLibraryMode } = await import('./markdown-library');
     return new MarkdownLibraryMode();
   }, 8);
+
+  modeRegistry.registerFactory('rag-system', async () => {
+    const { RAGSystemMode } = await import('./rag-system');
+    return new RAGSystemMode();
+  }, 9);
 
   // Future modes can be added here
   // modeRegistry.registerFactory('gemini-ultra', async () => {
