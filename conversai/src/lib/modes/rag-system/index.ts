@@ -22,6 +22,11 @@ export class RAGSystemMode implements ConversationMode {
   ai = ragAI;
   voice = ragVoice;
   storage = ragStorage;
+  
+  // Voice processor compatibility (the UI expects these directly on the mode)
+  get voiceProcessor() {
+    return this.voice;
+  }
 
   // Configuration
   config: ConversationConfig = {

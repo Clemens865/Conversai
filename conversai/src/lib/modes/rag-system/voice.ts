@@ -66,6 +66,33 @@ class RAGVoiceService implements VoiceService {
     console.log('🛑 Stopped listening');
   }
 
+  // Alias methods for compatibility with the UI
+  async startRecording(): Promise<void> {
+    // The UI expects startRecording, but we use startListening
+    // Create a default callback that does nothing for now
+    await this.startListening((text, isFinal) => {
+      console.log('Transcript:', text, 'Final:', isFinal);
+    });
+  }
+
+  stopRecording(): void {
+    // Synchronous version for UI compatibility
+    this.stopListening();
+  }
+
+  processTranscript(transcript: string): Promise<void> {
+    // Process the transcript - this will be called by the UI
+    if (this.onTranscriptCallback) {
+      this.onTranscriptCallback(transcript, true);
+    }
+    return Promise.resolve();
+  }
+
+  synthesizeSpeech(text: string): Promise<void> {
+    // Alias for speak method
+    return this.speak(text);
+  }
+
   async speak(text: string): Promise<void> {
     if (!this.synthesis) {
       console.warn('Speech synthesis not available');
