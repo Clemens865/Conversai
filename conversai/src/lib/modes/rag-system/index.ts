@@ -35,7 +35,10 @@ export class RAGSystemMode implements ConversationMode {
     You have access to a knowledge base stored in a vector database and can retrieve relevant information to answer questions accurately.
     When answering, you combine retrieved context with your general knowledge to provide comprehensive, accurate responses.`,
     ragConfig: {
-      serviceUrl: process.env.NEXT_PUBLIC_CONVERSAI_RAG_SERVICE_URL || 'http://localhost:3456',
+      // Use the actual Railway service URL, not the dashboard URL
+      serviceUrl: process.env.NEXT_PUBLIC_CONVERSAI_RAG_SERVICE_URL || 
+                  'https://conversai-rust-production.up.railway.app' || 
+                  'http://localhost:3456',
       maxChunks: 5,
       similarityThreshold: 0.7
     }
@@ -88,5 +91,41 @@ export class RAGSystemMode implements ConversationMode {
 
   isReady(): boolean {
     return true;
+  }
+
+  getMetrics() {
+    return {
+      latency: 85,
+      accuracy: 95,
+      privacy: 75,
+      cost: 50,
+      reliability: 90
+    };
+  }
+
+  // Required by ConversationMode interface
+  async processAudio(audioBlob: Blob, conversationId: string): Promise<any> {
+    // For now, just return a placeholder
+    return {
+      transcript: '',
+      response: 'Audio processing is handled by Web Speech API',
+      metadata: { mode: 'rag-system' }
+    };
+  }
+
+  async processText(text: string, conversationId: string): Promise<any> {
+    const response = await this.ai.sendMessage(text);
+    await this.storage.saveMessage({
+      id: Date.now().toString(),
+      role: 'user',
+      content: text,
+      timestamp: new Date()
+    });
+    await this.storage.saveMessage(response);
+    
+    return {
+      response: response.content,
+      metadata: response.metadata
+    };
   }
 }
