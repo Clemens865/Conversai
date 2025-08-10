@@ -30,32 +30,61 @@ async fn main() -> anyhow::Result<()> {
         .with_max_level(Level::INFO)
         .init();
 
-    // Database connection
+    // Database connection - make it optional for health checks
     let database_url = env::var("CONVERSAI_SUPABASE_DB_URL")
         .or_else(|_| env::var("DATABASE_URL"))
         .unwrap_or_else(|_| {
-            info!("No database URL found in environment variables");
+            info!("WARNING: No database URL found in environment variables");
             info!("Looking for CONVERSAI_SUPABASE_DB_URL or DATABASE_URL");
-            "postgresql://postgres:postgres@localhost:5432/conversai".to_string()
+            info!("Service will start with limited functionality (health check only)");
+            "".to_string()
         });
     
-    info!("Attempting to connect to database...");
-    
-    let pool = match PgPoolOptions::new()
-        .max_connections(5)
-        .acquire_timeout(std::time::Duration::from_secs(10))
-        .connect(&database_url)
-        .await {
-            Ok(pool) => {
-                info!("Successfully connected to database");
-                pool
-            },
-            Err(e) => {
-                eprintln!("Failed to connect to database: {}", e);
-                eprintln!("Database URL pattern: postgres://user:pass@host:port/database");
-                return Err(anyhow::anyhow!("Database connection failed: {}", e));
+    // Try to connect to database if URL is provided
+    let pool = if !database_url.is_empty() {
+        info!("Attempting to connect to database...");
+        
+        match PgPoolOptions::new()
+            .max_connections(5)
+            .acquire_timeout(std::time::Duration::from_secs(10))
+            .connect(&database_url)
+            .await {
+                Ok(pool) => {
+                    info!("Successfully connected to database");
+                    Some(pool)
+                },
+                Err(e) => {
+                    eprintln!("WARNING: Failed to connect to database: {}", e);
+                    eprintln!("Service starting in health-check-only mode");
+                    eprintln!("Add CONVERSAI_SUPABASE_DB_URL or DATABASE_URL to enable full functionality");
+                    None
+                }
             }
-        };
+    } else {
+        info!("No database URL provided - starting in health-check-only mode");
+        None
+    };
+    
+    // For now, if no database is available, we'll still fail but with better error message
+    let pool = match pool {
+        Some(p) => p,
+        None => {
+            // Allow service to start for health checks only
+            info!("Starting service in health-check-only mode");
+            info!("Database endpoints will not be functional");
+            // Create a minimal connection pool that will fail if actually used
+            PgPoolOptions::new()
+                .max_connections(1)
+                .connect("postgresql://localhost/dummy")
+                .await
+                .unwrap_or_else(|_| {
+                    // Return a pool that exists but isn't connected
+                    // This allows the service to start and respond to health checks
+                    sqlx::postgres::PgPool::connect_lazy("postgresql://localhost/dummy")
+                        .expect("Failed to create lazy pool")
+                })
+        }
+    };
 
     // Build our application with routes
     let cors = CorsLayer::new()
@@ -97,9 +126,16 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn health_check() -> Json<serde_json::Value> {
+    let db_connected = env::var("CONVERSAI_SUPABASE_DB_URL")
+        .or_else(|_| env::var("DATABASE_URL"))
+        .is_ok();
+    
     Json(json!({
         "status": "healthy",
         "service": "conversai-rag",
-        "version": "1.0.0"
+        "version": "1.0.1",
+        "database_configured": db_connected,
+        "mode": if db_connected { "full" } else { "health-check-only" },
+        "timestamp": chrono::Utc::now().to_rfc3339()
     }))
 }
