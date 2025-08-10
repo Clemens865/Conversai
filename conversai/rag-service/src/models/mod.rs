@@ -15,7 +15,7 @@ pub struct Document {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Chunk {
     pub id: Uuid,
     pub document_id: Uuid,

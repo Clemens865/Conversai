@@ -6,11 +6,10 @@ use axum::{
 use bytes::Bytes;
 use sha2::{Digest, Sha256};
 use sqlx::PgPool;
-use tracing::info;
-use uuid::Uuid;
-
-use crate::models::{Document, IngestRequest, IngestResponse};
+use tracing::{info, error};
+use crate::models::{Document, IngestResponse};
 use crate::services::{chunking, embedding, markdown};
+use pgvector::Vector;
 
 pub async fn handle_ingest(
     State(pool): State<PgPool>,
@@ -91,7 +90,10 @@ pub async fn handle_ingest(
 
         // Insert chunks
         for (chunk, embedding) in chunks.iter().zip(embeddings.iter()) {
-            sqlx::query(
+            // Convert Vec<f32> to pgvector::Vector
+            let vector = Vector::from(embedding.clone());
+            
+            match sqlx::query(
                 r#"
                 INSERT INTO chunks (document_id, content, content_tokens, section, span, metadata, embedding)
                 VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -103,10 +105,15 @@ pub async fn handle_ingest(
             .bind(&chunk.section)
             .bind(&chunk.span)
             .bind(&chunk.metadata)
-            .bind(embedding)
+            .bind(vector)
             .execute(&pool)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            .await {
+                Ok(_) => {},
+                Err(e) => {
+                    error!("Failed to insert chunk: {}", e);
+                    return Err(StatusCode::INTERNAL_SERVER_ERROR);
+                }
+            }
         }
 
         info!("Ingested document {} with {} chunks", doc.id, chunks.len());

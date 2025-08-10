@@ -1,4 +1,4 @@
-use pulldown_cmark::{Event, Parser, Tag, TagEnd};
+use pulldown_cmark::{Event, Parser, Tag};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,7 +21,7 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownSection> {
 
     for (event, range) in parser.into_offset_iter() {
         match event {
-            Event::Start(Tag::Heading { level, .. }) => {
+            Event::Start(Tag::Heading(level, _, _)) => {
                 // Save previous section if it has content
                 if !current_content.trim().is_empty() {
                     sections.push(MarkdownSection {
@@ -42,7 +42,7 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownSection> {
                     current_heading_path.pop();
                 }
             }
-            Event::End(TagEnd::Heading(_)) => {
+            Event::End(Tag::Heading(..)) => {
                 // Heading text will be added as regular text
             }
             Event::Text(text) => {
@@ -63,7 +63,7 @@ pub fn parse_markdown(content: &str) -> Vec<MarkdownSection> {
                 in_code_block = true;
                 current_content.push_str("```\n");
             }
-            Event::End(TagEnd::CodeBlock) => {
+            Event::End(Tag::CodeBlock(_)) => {
                 in_code_block = false;
                 current_content.push_str("```\n");
             }

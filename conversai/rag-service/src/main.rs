@@ -1,8 +1,7 @@
 use axum::{
-    extract::Multipart,
     http::StatusCode,
     routing::{get, post},
-    Json, Router,
+    Router,
 };
 use dotenv::dotenv;
 use sqlx::postgres::PgPoolOptions;
@@ -58,9 +57,8 @@ async fn main() -> anyhow::Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
     info!("RAG service listening on {}", addr);
     
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await?;
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    axum::serve(listener, app).await?;
 
     Ok(())
 }

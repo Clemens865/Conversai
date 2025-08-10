@@ -2,6 +2,7 @@ use anyhow::Result;
 use sqlx::{PgPool, Row};
 use std::collections::HashMap;
 use tracing::info;
+use pgvector::Vector;
 
 use crate::models::Chunk;
 use crate::services::embedding::cosine_similarity;
@@ -20,6 +21,9 @@ pub async fn hybrid_search(
     k: i32,
     filter_tags: Option<&Vec<String>>,
 ) -> Result<Vec<ChunkWithScore>> {
+    // Convert embedding to pgvector::Vector
+    let vector = Vector::from(query_embedding.to_vec());
+    
     // Use the hybrid_search function we defined in SQL
     let rows = sqlx::query(
         r#"
@@ -35,7 +39,7 @@ pub async fn hybrid_search(
         FROM hybrid_search($1::vector, $2, $3, $4)
         "#
     )
-    .bind(query_embedding)
+    .bind(vector)
     .bind(query_text)
     .bind(k)
     .bind(filter_tags)
@@ -73,7 +77,7 @@ pub fn rerank_chunks(chunks: &[ChunkWithScore], query_embedding: &[f32], top_k: 
     // Simple cosine similarity reranking for now
     // In production, use a cross-encoder model
     if let Some(first_chunk) = chunks.first() {
-        if let Some(ref embedding) = first_chunk.chunk.embedding {
+        if let Some(ref _embedding) = first_chunk.chunk.embedding {
             for chunk in &mut reranked {
                 if let Some(ref chunk_embedding) = chunk.chunk.embedding {
                     chunk.score = cosine_similarity(query_embedding, chunk_embedding);

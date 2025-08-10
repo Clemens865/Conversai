@@ -1,0 +1,6 @@
+target/
+.env
+.env.local
+*.log
+Cargo.lock
+.DS_Store
