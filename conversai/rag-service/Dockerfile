@@ -30,8 +30,8 @@ COPY --from=builder /app/target/release/conversai-rag /app/conversai-rag
 RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port
-EXPOSE 3030
+# Expose port - Railway will set PORT env var
+EXPOSE 8080
 
 # Set environment variables (will be overridden by deployment platform)
 ENV RUST_LOG=info

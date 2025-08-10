@@ -53,8 +53,13 @@ async fn main() -> anyhow::Result<()> {
         )
         .with_state(pool);
 
-    // Run server
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3030));
+    // Run server - use PORT env var from Railway or default to 3030
+    let port: u16 = env::var("PORT")
+        .unwrap_or_else(|_| "3030".to_string())
+        .parse()
+        .expect("PORT must be a number");
+    
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     info!("RAG service listening on {}", addr);
     
     let listener = tokio::net::TcpListener::bind(&addr).await?;
