@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
+});
+
+// Initialize OpenAI client as fallback
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 // This is a simple server-side helper for Claude API calls
@@ -12,20 +18,43 @@ const anthropic = new Anthropic({
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const transcript = formData.get('transcript') as string;
-    const conversationContext = formData.get('context') as string;
+    let transcript: string = '';
+    let conversationContext: string = '';
+    let message: string = '';
+    let config: any = {};
     
-    if (!transcript) {
-      return NextResponse.json({ error: 'Missing transcript' }, { status: 400 });
+    // Check Content-Type to handle both JSON and FormData
+    const contentType = req.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      // Handle JSON request (from RAG AI service)
+      const jsonData = await req.json();
+      message = jsonData.message || '';
+      transcript = jsonData.transcript || message;
+      conversationContext = jsonData.context ? JSON.stringify(jsonData.context) : '';
+      config = jsonData.config || {};
+    } else {
+      // Handle FormData request (original implementation)
+      const formData = await req.formData();
+      transcript = formData.get('transcript') as string;
+      conversationContext = formData.get('context') as string;
+    }
+    
+    if (!transcript && !message) {
+      return NextResponse.json({ error: 'Missing transcript or message' }, { status: 400 });
     }
 
     // Parse the context sent from client (contains facts from IndexedDB)
     let context = '';
     try {
       if (conversationContext) {
-        const contextData = JSON.parse(conversationContext);
+        const contextData = typeof conversationContext === 'string' 
+          ? JSON.parse(conversationContext) 
+          : conversationContext;
         context = buildContextPrompt(contextData);
+      } else if (config.systemPrompt) {
+        // Use system prompt from config if available
+        context = config.systemPrompt;
       }
     } catch (e) {
       console.error('Error parsing context:', e);
@@ -35,22 +64,60 @@ export async function POST(req: NextRequest) {
     const messages: Anthropic.Messages.MessageParam[] = [
       {
         role: 'user',
-        content: transcript
+        content: message || transcript
       }
     ];
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
-      model: 'claude-3-opus-20240229',
-      max_tokens: 1000,
-      temperature: 0.7,
-      system: context || "You are a helpful, friendly AI assistant focused on privacy. Keep responses natural and conversational.",
-      messages: messages,
-    });
+    let assistantResponse = '';
+    
+    // Try Claude API first if configured
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const response = await anthropic.messages.create({
+          model: 'claude-3-opus-20240229',
+          max_tokens: 1000,
+          temperature: 0.7,
+          system: context || "You are a helpful, friendly AI assistant focused on privacy. Keep responses natural and conversational.",
+          messages: messages,
+        });
 
-    const assistantResponse = response.content[0].type === 'text' 
-      ? response.content[0].text 
-      : 'I understand. How can I help you?';
+        assistantResponse = response.content[0].type === 'text' 
+          ? response.content[0].text 
+          : 'I understand. How can I help you?';
+      } catch (claudeError) {
+        console.log('Claude API failed, falling back to OpenAI');
+      }
+    }
+    
+    // Fall back to OpenAI if Claude fails or isn't configured
+    if (!assistantResponse && process.env.OPENAI_API_KEY) {
+      try {
+        const completion = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: context || "You are a helpful, friendly AI assistant focused on privacy. Keep responses natural and conversational."
+            },
+            {
+              role: 'user',
+              content: message || transcript
+            }
+          ],
+          max_tokens: 1000,
+          temperature: 0.7,
+        });
+
+        assistantResponse = completion.choices[0]?.message?.content || 'I understand. How can I help you?';
+      } catch (openaiError) {
+        console.error('OpenAI API also failed:', openaiError);
+        throw openaiError;
+      }
+    }
+    
+    if (!assistantResponse) {
+      throw new Error('No AI service available');
+    }
     
     // Return response - no storage, no logging of personal data
     return NextResponse.json({
