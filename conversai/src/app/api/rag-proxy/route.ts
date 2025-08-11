@@ -12,8 +12,32 @@ export async function POST(request: NextRequest) {
     const endpoint = body.endpoint || 'query'; // Default to query endpoint
     
     console.log(`Proxying request to Railway: ${RAILWAY_SERVICE_URL}/api/${endpoint}`);
+    console.log('Request endpoint:', endpoint);
+    console.log('Request has data:', !!body.data);
     
-    // Make server-side request to Railway (no CORS restrictions)
+    // Handle ingestion endpoint differently
+    if (endpoint === 'ingest') {
+      console.log('Processing ingestion request');
+      // For ingestion, try Railway first, then fallback to direct database insert
+      const response = await fetch(`${RAILWAY_SERVICE_URL}/api/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body.data || body),
+      });
+
+      if (response.status === 502 || response.status === 503 || !response.ok) {
+        console.log('Railway unavailable for ingestion, using direct database insert');
+        return await directDatabaseIngest(body.data || body);
+      }
+
+      const data = await response.json();
+      return NextResponse.json(data);
+    }
+    
+    // Handle query endpoint
+    console.log('Processing query request');
     const response = await fetch(`${RAILWAY_SERVICE_URL}/api/${endpoint}`, {
       method: 'POST',
       headers: {
@@ -257,6 +281,97 @@ Answer:`;
   }
   
   return 'I could not find specific information about that in the database.';
+}
+
+// Direct database ingest function
+async function directDatabaseIngest(data: any): Promise<NextResponse> {
+  console.log('Direct database ingest for document');
+  
+  try {
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_CONVERSAI_SUPABASE_URL;
+    const supabaseKey = process.env.CONVERSAI_SUPABASE_SERVICE_KEY || 
+                       process.env.NEXT_PUBLIC_CONVERSAI_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Database configuration missing' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Create document record
+    const { data: document, error: docError } = await supabase
+      .from('documents')
+      .insert({
+        source_type: data.source_type || 'md',
+        source_uri: data.source_uri || 'unknown',
+        content_sha256: Buffer.from(data.content || '').toString('base64').substring(0, 64),
+        tags: data.metadata?.keywords || [],
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (docError) {
+      console.error('Document insert error:', docError);
+      throw docError;
+    }
+    
+    // Split content into chunks (simple chunking by paragraphs)
+    const paragraphs = (data.content || '').split('\n\n').filter((p: string) => p.trim());
+    const chunks = [];
+    
+    for (let i = 0; i < paragraphs.length; i++) {
+      const content = paragraphs[i];
+      if (content.length < 50) continue; // Skip very short chunks
+      
+      // Generate embedding for the chunk
+      const embedding = await generateEmbedding(content);
+      
+      chunks.push({
+        document_id: document.id,
+        content: content,
+        content_tokens: Math.ceil(content.length / 4), // Rough estimate
+        section: data.metadata?.title || 'Biography',
+        metadata: {
+          ...data.metadata,
+          chunk_index: i,
+          source: data.source_uri
+        },
+        embedding: embedding,
+        created_at: new Date().toISOString()
+      });
+    }
+    
+    // Insert chunks
+    const { data: insertedChunks, error: chunkError } = await supabase
+      .from('chunks')
+      .insert(chunks)
+      .select();
+    
+    if (chunkError) {
+      console.error('Chunk insert error:', chunkError);
+      throw chunkError;
+    }
+    
+    return NextResponse.json({
+      success: true,
+      document_id: document.id,
+      chunks_created: insertedChunks?.length || 0,
+      message: `Successfully ingested document with ${insertedChunks?.length || 0} chunks`
+    });
+    
+  } catch (error) {
+    console.error('Direct ingest error:', error);
+    return NextResponse.json(
+      { error: 'Failed to ingest document', details: error },
+      { status: 500 }
+    );
+  }
 }
 
 // Handle OPTIONS for CORS
