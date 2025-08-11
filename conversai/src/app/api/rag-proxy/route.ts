@@ -116,16 +116,45 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
     
     console.log('Total chunks in database:', count);
     
+    // First try simple ILIKE search to see if we can find anything
+    const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 3);
+    console.log('Searching for terms:', searchTerms);
+    
+    // Build a comprehensive OR query
+    const orConditions = searchTerms.map(term => 
+      `content.ilike.%${term}%`
+    ).join(',');
+    
+    const { data: simpleSearchData, error: simpleError } = await supabase
+      .from('chunks')
+      .select('content, metadata, document_id, section')
+      .or(orConditions)
+      .limit(5);
+    
+    console.log('Simple search found:', simpleSearchData?.length || 0, 'chunks');
+    
+    if (simpleSearchData && simpleSearchData.length > 0) {
+      const context = simpleSearchData.map(doc => doc.content).join('\n\n');
+      const answer = await generateAnswer(query, context);
+      
+      return NextResponse.json({
+        answer,
+        sources: simpleSearchData.map(doc => doc.metadata?.source || doc.section || 'Database'),
+        chunks: simpleSearchData,
+        mode: 'database-simple-search'
+      });
+    }
+    
     // Generate embedding for the query using OpenAI
     const embedding = await generateEmbedding(query);
     
     if (!embedding) {
       console.log('No embedding generated, using text search');
-      // Fallback to full-text search without embeddings
+      // Fallback to ILIKE search without embeddings
       const { data, error } = await supabase
         .from('chunks')
         .select('content, metadata, document_id')
-        .textSearch('content', query)
+        .or(`content.ilike.%${query}%,section.ilike.%${query}%`)
         .limit(5);
       
       if (error) {
@@ -146,7 +175,8 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
       });
     }
     
-    // Use vector similarity search with the embedding
+    // Try vector similarity search with the embedding
+    console.log('Attempting hybrid_search with embedding...');
     const { data, error } = await supabase.rpc('hybrid_search', {
       query_text: query,
       query_embedding: embedding,
@@ -158,11 +188,11 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
     
     if (error) {
       console.error('Hybrid search error:', error);
-      // Fallback to simple text search
+      // Fallback to simple ILIKE search
       const { data: textData } = await supabase
         .from('chunks')
         .select('content, metadata, document_id')
-        .textSearch('content', query)
+        .or(`content.ilike.%${query}%,section.ilike.%${query}%`)
         .limit(5);
       
       const context = textData?.map(doc => doc.content).join('\n\n') || '';
