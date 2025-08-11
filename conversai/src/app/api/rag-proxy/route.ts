@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
 
 // Direct database query using Supabase (bypasses Railway entirely)
 async function directDatabaseQuery(query: string): Promise<NextResponse> {
+  console.log('Direct database query for:', query);
+  
   try {
     const { createClient } = await import('@supabase/supabase-js');
     
@@ -83,14 +85,22 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     
+    // First, let's check if we have any data in the chunks table
+    const { count } = await supabase
+      .from('chunks')
+      .select('*', { count: 'exact', head: true });
+    
+    console.log('Total chunks in database:', count);
+    
     // Generate embedding for the query using OpenAI
     const embedding = await generateEmbedding(query);
     
     if (!embedding) {
+      console.log('No embedding generated, using text search');
       // Fallback to full-text search without embeddings
       const { data, error } = await supabase
-        .from('rag_documents')
-        .select('content, metadata')
+        .from('chunks')
+        .select('content, metadata, document_id')
         .textSearch('content', query)
         .limit(5);
       
@@ -98,6 +108,8 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
         console.error('Database query error:', error);
         throw error;
       }
+      
+      console.log('Text search results:', data?.length || 0, 'chunks found');
       
       const context = data?.map(doc => doc.content).join('\n\n') || '';
       const answer = await generateAnswer(query, context);
@@ -124,8 +136,8 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
       console.error('Hybrid search error:', error);
       // Fallback to simple text search
       const { data: textData } = await supabase
-        .from('rag_documents')
-        .select('content, metadata')
+        .from('chunks')
+        .select('content, metadata, document_id')
         .textSearch('content', query)
         .limit(5);
       

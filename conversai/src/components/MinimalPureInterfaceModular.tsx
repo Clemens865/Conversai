@@ -384,8 +384,26 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
         };
         setMessages(prev => [...prev, assistantMessage]);
         
-        // For Claude mode, speech synthesis is handled internally
-        if (currentMode.id !== 'claude-local-first' && result.audioUrl) {
+        // Handle voice synthesis based on mode
+        if (currentMode.id === 'rag-system' && currentMode.voice) {
+          // RAG System uses its own voice synthesis (ElevenLabs or Web Speech)
+          try {
+            await currentMode.voice.speak(result.response);
+          } catch (error) {
+            console.error('Voice synthesis error:', error);
+          }
+          setStatusText('listening');
+          setAnimationActive(false);
+        } else if (currentMode.id === 'markdown-library' && currentMode.voice) {
+          // Markdown Library also uses voice synthesis
+          try {
+            await currentMode.voice.speak(result.response);
+          } catch (error) {
+            console.error('Voice synthesis error:', error);
+          }
+          setStatusText('listening');
+          setAnimationActive(false);
+        } else if (currentMode.id !== 'claude-local-first' && result.audioUrl) {
           const audio = new Audio(result.audioUrl);
           audio.onended = () => {
             setStatusText('listening');
@@ -450,7 +468,16 @@ export default function MinimalPureInterfaceModular({ user }: MinimalPureInterfa
         setMessages(prev => [...prev, assistantMessage]);
         
         // Play audio if available
-        if (result.audioUrl) {
+        if (currentMode.id === 'rag-system' && currentMode.voice) {
+          // RAG System uses its own voice synthesis
+          try {
+            await currentMode.voice.speak(result.response);
+          } catch (error) {
+            console.error('Voice synthesis error:', error);
+          }
+          setStatusText('listening');
+          setAnimationActive(false);
+        } else if (result.audioUrl) {
           const audio = new Audio(result.audioUrl);
           audio.onended = () => {
             setStatusText('listening');
