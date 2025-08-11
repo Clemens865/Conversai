@@ -89,9 +89,10 @@ async fn main() -> anyhow::Result<()> {
     // Build our application with routes
     let cors = CorsLayer::new()
         .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
-        .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION])
-        .expose_headers([header::CONTENT_TYPE]);
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::PUT, Method::DELETE])
+        .allow_headers(Any)
+        .expose_headers(Any)
+        .max_age(3600);
 
     let app = Router::new()
         .route("/health", get(health_check))
