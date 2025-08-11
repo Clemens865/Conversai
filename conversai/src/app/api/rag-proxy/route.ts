@@ -84,9 +84,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Helper function to convert first-person references to Clemens
+function normalizeQuery(query: string): string {
+  // Replace first-person references with "Clemens" or "Clemens Hönig"
+  let normalized = query
+    .replace(/\b(my|mein|meine|meinen|meiner|meines)\b/gi, "Clemens's")
+    .replace(/\b(I am|I'm|ich bin)\b/gi, "Clemens is")
+    .replace(/\b(I|me|ich|mir|mich)\b/gi, "Clemens")
+    .replace(/\b(myself|mich selbst)\b/gi, "Clemens himself");
+  
+  // Also check if the query is asking about "you" (referring to the assistant's owner)
+  normalized = normalized
+    .replace(/\b(who are you|wer bist du)\b/gi, "Who is Clemens Hönig")
+    .replace(/\b(your|dein|deine|deinen|deiner|deines)\b/gi, "Clemens's");
+  
+  console.log('Query normalized from:', query, 'to:', normalized);
+  return normalized;
+}
+
 // Direct database query using Supabase (bypasses Railway entirely)
 async function directDatabaseQuery(query: string): Promise<NextResponse> {
   console.log('Direct database query for:', query);
+  
+  // Normalize the query to handle first-person references
+  const normalizedQuery = normalizeQuery(query);
   
   try {
     const { createClient } = await import('@supabase/supabase-js');
@@ -117,7 +138,7 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
     console.log('Total chunks in database:', count);
     
     // First try simple ILIKE search to see if we can find anything
-    const searchTerms = query.toLowerCase().split(' ').filter(term => term.length > 3);
+    const searchTerms = normalizedQuery.toLowerCase().split(' ').filter(term => term.length > 3);
     console.log('Searching for terms:', searchTerms);
     
     // Build a comprehensive OR query
@@ -145,8 +166,8 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
       });
     }
     
-    // Generate embedding for the query using OpenAI
-    const embedding = await generateEmbedding(query);
+    // Generate embedding for the normalized query using OpenAI
+    const embedding = await generateEmbedding(normalizedQuery);
     
     if (!embedding) {
       console.log('No embedding generated, using text search');
@@ -154,7 +175,7 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
       const { data, error } = await supabase
         .from('chunks')
         .select('content, metadata, document_id')
-        .or(`content.ilike.%${query}%,section.ilike.%${query}%`)
+        .or(`content.ilike.%${normalizedQuery}%,section.ilike.%${normalizedQuery}%`)
         .limit(5);
       
       if (error) {
@@ -178,7 +199,7 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
     // Try vector similarity search with the embedding
     console.log('Attempting hybrid_search with embedding...');
     const { data, error } = await supabase.rpc('hybrid_search', {
-      query_text: query,
+      query_text: normalizedQuery,
       query_embedding: embedding,
       match_count: 5,
       full_text_weight: 0.3,
@@ -192,7 +213,7 @@ async function directDatabaseQuery(query: string): Promise<NextResponse> {
       const { data: textData } = await supabase
         .from('chunks')
         .select('content, metadata, document_id')
-        .or(`content.ilike.%${query}%,section.ilike.%${query}%`)
+        .or(`content.ilike.%${normalizedQuery}%,section.ilike.%${normalizedQuery}%`)
         .limit(5);
       
       const context = textData?.map(doc => doc.content).join('\n\n') || '';
@@ -266,7 +287,15 @@ async function generateEmbedding(text: string): Promise<number[] | null> {
 
 // Generate answer using OpenAI or Claude
 async function generateAnswer(query: string, context: string): Promise<string> {
-  const prompt = `Based on the following context, answer the question. If the context doesn't contain relevant information, say so.
+  // Check if the query contains first-person references to add context
+  const isFirstPerson = /\b(I|me|my|myself|ich|mir|mein)\b/i.test(query);
+  const systemContext = isFirstPerson 
+    ? `You are Clemens Hönig's personal AI assistant. When the user uses first-person pronouns (I, me, my), they are referring to Clemens Hönig himself. Answer in a personal and helpful manner.`
+    : `You are a helpful AI assistant with knowledge about Clemens Hönig. Answer questions based on the provided context.`;
+  
+  const prompt = `${systemContext}
+
+Based on the following context about Clemens Hönig, answer the question. If the context doesn't contain relevant information, say so politely.
 
 Context:
 ${context}
@@ -288,7 +317,7 @@ Answer:`;
         body: JSON.stringify({
           model: 'gpt-3.5-turbo',
           messages: [
-            { role: 'system', content: 'You are a helpful assistant that answers questions based on provided context.' },
+            { role: 'system', content: systemContext },
             { role: 'user', content: prompt }
           ],
           max_tokens: 300,
