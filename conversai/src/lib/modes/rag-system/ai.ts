@@ -1,14 +1,23 @@
 import { AIService, Message, ConversationConfig } from './types';
+import { getFallbackRAGClient } from './fallback-client';
 
 class RAGAIService implements AIService {
   private config: ConversationConfig = {};
   private ragServiceUrl: string = '';
   private fallbackToDirectAI: boolean = false;
+  private fallbackClient = getFallbackRAGClient();
 
   async initialize(config: ConversationConfig): Promise<void> {
     this.config = config;
     this.ragServiceUrl = config.ragConfig?.serviceUrl || 'http://localhost:3456';
     console.log('🤖 RAG AI Service initialized with URL:', this.ragServiceUrl);
+    
+    // Check service availability on initialization
+    const health = await this.fallbackClient.checkHealth();
+    if (!health.available) {
+      console.log('⚠️ Railway service unavailable, using fallback mode');
+      this.fallbackToDirectAI = true;
+    }
   }
 
   async sendMessage(message: string, context?: any): Promise<Message> {
@@ -37,26 +46,28 @@ class RAGAIService implements AIService {
 
   private async queryRAG(query: string): Promise<any> {
     try {
-      const response = await fetch(`${this.ragServiceUrl}/api/query`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          limit: this.config.ragConfig?.maxChunks || 5,
-          threshold: this.config.ragConfig?.similarityThreshold || 0.7
-        }),
-      });
-
-      if (!response.ok) {
-        console.warn('RAG query failed:', response.status);
+      // Use the fallback client which handles retries and fallback logic
+      const response = await this.fallbackClient.query(query);
+      
+      if (response.mode === 'fallback') {
+        console.log('Using fallback mode for query');
         this.fallbackToDirectAI = true;
-        return null;
+        
+        // Return a simulated RAG response for fallback mode
+        return [{
+          content: response.answer,
+          source: response.sources[0] || 'Fallback Knowledge Base',
+          confidence: response.confidence
+        }];
       }
-
-      const data = await response.json();
-      return data.chunks || [];
+      
+      // Railway service responded successfully
+      return [{
+        content: response.answer,
+        source: response.sources[0] || 'RAG Database',
+        confidence: response.confidence
+      }];
+      
     } catch (error) {
       console.error('Error querying RAG service:', error);
       this.fallbackToDirectAI = true;
