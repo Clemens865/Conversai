@@ -1,55 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
-// Clemens's biography content
-const BIOGRAPHY_CONTENT = `
-# Lebensgeschichte von Clemens Hönig
+// Read the actual biography content from the markdown file
+function getBiographyContent(): string {
+  try {
+    const filePath = path.join(process.cwd(), 'docs', 'lebensgeschichte_clemens_hoenig.md');
+    return fs.readFileSync(filePath, 'utf8');
+  } catch (error) {
+    console.error('Error reading biography file:', error);
+    // Fallback content if file can't be read
+    return `
+Biografie von Clemens Hönig
+Persönliche Daten
+Name: Clemens Hönig
+Geburtsjahr: 1979
+Geburtsort: Graz, Österreich
 
-## Frühe Jahre und Herkunft
-Clemens Hönig wurde in Wien, Österreich geboren und wuchs in einer technologiebegeisterten Familie auf. Schon früh zeigte er großes Interesse an Computern und Robotik.
+Familie
+Mutter: Doris Hoenig - Hautärztin mit eigener Ordination in Graz
+Vater: Manfred Hönig - Beamter, zuständig für Straßen- und Brückenbau bei der Stadt Graz
+Bruder: Julian Hönig - Geboren 11. September 1976, Design FH Graz, Karriere bei Audi, Lamborghini, über 10 Jahre bei Apple als Exterior Designer
 
-## Ausbildung und Studium
-Nach dem Gymnasium studierte Clemens Informatik mit Schwerpunkt auf Computer Vision und Künstliche Intelligenz. Während seines Studiums spezialisierte er sich auf Bildverarbeitung und robotische Systeme.
+Beruflicher Werdegang
+- New Sports, Graz: Mitarbeit während Schulzeit und Studium
+- Salomon Snowboards: Technischer Repräsentant für Ostösterreich  
+- emotion Management, Graz: Projektarbeit für S-Tennis Masters, MTB-Weltcup
+- C-Motion, Wien: Über 10 Jahre in der Filmindustrie, Aufbau von Focus Puller at Work
+- Seit Januar 2025: Intelligence- & Marketing Operations Manager bei Yorizon GmbH
 
-## Karriere bei Robotic Eyes
-Clemens gründete das Unternehmen Robotic Eyes, das sich auf innovative Computer Vision Lösungen spezialisierte. Als CEO und technischer Leiter entwickelte er bahnbrechende Technologien für:
-- 3D-Rekonstruktion und Mapping
-- Augmented Reality Anwendungen
-- Robotische Navigationssysteme
-- Industrielle Bildverarbeitung
+Über Yorizon
+Joint Venture von Hochtief & Thomas-Krenn, europäischer Cloud-Infrastruktur-Anbieter
 
-Unter seiner Führung wuchs Robotic Eyes zu einem anerkannten Technologieunternehmen mit internationalen Kunden.
+Technische Weiterbildung
+3D (Blender), KI, LLMs, Coding Assistants
 
-## Arbeit bei Yorizon
-Nach dem erfolgreichen Exit von Robotic Eyes wechselte Clemens zu Yorizon (Your Horizon), wo er als Principal Engineer und AI-Spezialist tätig ist. Bei Yorizon arbeitet er an:
-- Advanced AI Systems für Computer Vision
-- Conversational AI und natürliche Sprachverarbeitung
-- Integration von Large Language Models (LLMs) in praktische Anwendungen
-- Entwicklung von RAG (Retrieval Augmented Generation) Systemen
-
-Seine Arbeit bei Yorizon fokussiert sich besonders auf die Verbindung von Computer Vision mit modernen AI-Technologien.
-
-## Technische Expertise
-Clemens ist Experte in folgenden Bereichen:
-- **Computer Vision**: 3D-Rekonstruktion, SLAM, Object Detection
-- **Robotik**: Autonome Navigation, Sensor Fusion
-- **Künstliche Intelligenz**: Deep Learning, Neural Networks, LLMs
-- **Software Engineering**: Rust, Python, TypeScript, C++
-- **Cloud & DevOps**: AWS, Docker, Kubernetes, Railway
-
-## Aktuelle Projekte
-Derzeit arbeitet Clemens an mehreren innovativen Projekten:
-- **ConversAI**: Ein fortschrittliches Conversational AI System mit RAG-Technologie
-- **Matterport Integration**: 3D-Scanning und digitale Zwillinge für Immobilien
-- **AI-powered Vision Systems**: Neue Ansätze für intelligente Bildverarbeitung
-
-## Persönliche Interessen
-Neben seiner beruflichen Tätigkeit interessiert sich Clemens für:
-- Open Source Software Entwicklung
-- Mentoring von jungen Entwicklern
-- Technologie-Trends und Innovation
-- Fotografie und 3D-Visualisierung
+Eigene Familie
+Ehefrau: Karin Schwarz - Geboren 26. April 1983, Studium der Kunstwissenschaften
+Tochter: Clara Hönig - Geboren 12. August 2015
 `;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,12 +60,17 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
     
+    // Get the actual biography content
+    const BIOGRAPHY_CONTENT = getBiographyContent();
+    console.log('Biography content loaded, length:', BIOGRAPHY_CONTENT.length);
+    
     // First, clear existing biography chunks to avoid duplicates
     console.log('Clearing existing biography chunks...');
     const { error: deleteError } = await supabase
       .from('chunks')
       .delete()
-      .like('metadata->>source', '%biography%');
+      .like('metadata->>source', '%biography%')
+      .or('metadata->>source.like.%lebensgeschichte%,section.ilike.%clemens%');
     
     if (deleteError) {
       console.error('Error clearing existing chunks:', deleteError);
@@ -84,9 +81,9 @@ export async function POST(request: NextRequest) {
       .from('documents')
       .insert({
         source_type: 'md',
-        source_uri: 'clemens_biography.md',
+        source_uri: 'lebensgeschichte_clemens_hoenig.md',
         content_sha256: Buffer.from(BIOGRAPHY_CONTENT).toString('base64').substring(0, 64),
-        tags: ['biography', 'clemens', 'personal'],
+        tags: ['biography', 'clemens', 'personal', 'lebensgeschichte'],
         created_at: new Date().toISOString()
       })
       .select()
@@ -99,20 +96,44 @@ export async function POST(request: NextRequest) {
     
     const documentId = document?.id || 'biography-' + Date.now();
     
-    // Split content into meaningful chunks
-    const sections = BIOGRAPHY_CONTENT.split(/\n##\s+/).filter(s => s.trim());
+    // Split content into meaningful chunks by sections
     const chunks = [];
+    const sections = [];
+    let currentSection = { title: 'Introduction', content: '' };
     
+    // Parse the biography into sections based on the format
+    const lines = BIOGRAPHY_CONTENT.split('\n');
+    const sectionHeaders = ['Persönliche Daten', 'Familie', 'Kindheit und Schulzeit', 'Studium', 
+                           'Beruflicher Werdegang', 'Eigene Familie', 'Über Yorizon'];
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      
+      // Check if this line is a section header
+      if (sectionHeaders.some(header => trimmedLine.startsWith(header))) {
+        // Save previous section if it has content
+        if (currentSection.content.trim()) {
+          sections.push(currentSection);
+        }
+        // Start new section
+        currentSection = { title: trimmedLine, content: '' };
+      } else if (trimmedLine) {
+        // Add line to current section
+        currentSection.content += line + '\n';
+      }
+    }
+    
+    // Don't forget the last section
+    if (currentSection.content.trim()) {
+      sections.push(currentSection);
+    }
+    
+    // Create chunks from sections
     for (let i = 0; i < sections.length; i++) {
       const section = sections[i];
-      if (section.length < 20) continue;
+      const content = section.content.trim();
       
-      // Extract section title and content
-      const lines = section.split('\n');
-      const title = lines[0].replace(/^#+\s*/, '');
-      const content = lines.slice(1).join('\n').trim();
-      
-      if (!content) continue;
+      if (!content || content.length < 20) continue;
       
       // Generate embedding using OpenAI
       const embedding = await generateEmbedding(content);
@@ -121,10 +142,10 @@ export async function POST(request: NextRequest) {
         document_id: documentId,
         content: content,
         content_tokens: Math.ceil(content.length / 4),
-        section: title,
+        section: section.title,
         metadata: {
-          title: title,
-          source: 'clemens_biography.md',
+          title: section.title,
+          source: 'lebensgeschichte_clemens_hoenig.md',
           chunk_index: i,
           type: 'biography',
           person: 'Clemens Hönig',
@@ -183,14 +204,33 @@ export async function POST(request: NextRequest) {
 // Helper function to extract topics from content
 function extractTopics(content: string): string[] {
   const topics = [];
+  const contentLower = content.toLowerCase();
   
-  if (content.toLowerCase().includes('robotic eyes')) topics.push('Robotic Eyes');
-  if (content.toLowerCase().includes('yorizon')) topics.push('Yorizon');
-  if (content.toLowerCase().includes('computer vision')) topics.push('Computer Vision');
-  if (content.toLowerCase().includes('ai') || content.toLowerCase().includes('artificial')) topics.push('AI');
-  if (content.toLowerCase().includes('rust')) topics.push('Rust');
-  if (content.toLowerCase().includes('matterport')) topics.push('Matterport');
-  if (content.toLowerCase().includes('conversai')) topics.push('ConversAI');
+  // Companies and work
+  if (contentLower.includes('yorizon')) topics.push('Yorizon');
+  if (contentLower.includes('new sports')) topics.push('New Sports');
+  if (contentLower.includes('salomon')) topics.push('Salomon Snowboards');
+  if (contentLower.includes('c-motion')) topics.push('C-Motion');
+  if (contentLower.includes('focus puller')) topics.push('Focus Puller at Work');
+  if (contentLower.includes('kakaduu')) topics.push('Kakaduu');
+  if (contentLower.includes('emotion management')) topics.push('emotion Management');
+  if (contentLower.includes('steinhalle')) topics.push('Steinhalle Lannach');
+  
+  // Technical topics
+  if (contentLower.includes('ai') || contentLower.includes('llm') || contentLower.includes('künstliche intelligenz')) topics.push('AI');
+  if (contentLower.includes('blender') || contentLower.includes('3d')) topics.push('3D');
+  if (contentLower.includes('coding')) topics.push('Programming');
+  
+  // Personal
+  if (contentLower.includes('karin')) topics.push('Familie');
+  if (contentLower.includes('clara')) topics.push('Familie');
+  if (contentLower.includes('graz')) topics.push('Graz');
+  if (contentLower.includes('wien')) topics.push('Wien');
+  if (contentLower.includes('snowboard') || contentLower.includes('skateboard')) topics.push('Sport');
+  
+  // Education
+  if (contentLower.includes('sportwissenschaften')) topics.push('Sportwissenschaften');
+  if (contentLower.includes('gymnasium')) topics.push('Bildung');
   
   return topics;
 }
