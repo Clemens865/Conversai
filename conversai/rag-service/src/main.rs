@@ -114,12 +114,21 @@ async fn main() -> anyhow::Result<()> {
     let port: u16 = port_str.parse()
         .expect("PORT must be a valid number");
     
+    println!("🚀 Starting server on port {}", port);
     info!("Starting server on port {}", port);
     
+    // Bind to all interfaces (0.0.0.0) for Railway
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    println!("🎯 Binding to address: {}", addr);
     info!("RAG service listening on {}", addr);
     
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    let listener = tokio::net::TcpListener::bind(&addr)
+        .await
+        .expect("Failed to bind to address");
+    
+    println!("✅ Server successfully bound to {}:{}", "0.0.0.0", port);
+    println!("🔗 Health check available at: http://0.0.0.0:{}/health", port);
+    
     axum::serve(listener, app).await?;
 
     Ok(())
