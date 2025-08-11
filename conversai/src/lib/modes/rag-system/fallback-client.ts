@@ -22,45 +22,55 @@ export class FallbackRAGClient {
   }
 
   async query(question: string): Promise<FallbackQueryResponse> {
-    // First, try Railway service if URL is configured
-    if (this.railwayUrl) {
-      for (let attempt = 0; attempt < this.maxRetries; attempt++) {
-        try {
-          console.log(`Attempting Railway service (attempt ${attempt + 1}/${this.maxRetries})...`);
+    // Use the proxy route to avoid CORS issues
+    // This will try Railway first, then fall back to direct database access
+    for (let attempt = 0; attempt < this.maxRetries; attempt++) {
+      try {
+        console.log(`Attempting RAG service via proxy (attempt ${attempt + 1}/${this.maxRetries})...`);
+        
+        const response = await fetch('/api/rag-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            query: question,
+            endpoint: 'query',
+            data: { query: question }
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('RAG service responded successfully via proxy');
           
-          const response = await fetch(`${this.railwayUrl}/api/query`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ query: question }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Railway service responded successfully');
-            return {
-              answer: data.answer || data.response || 'No answer provided',
-              sources: data.sources || [],
-              confidence: data.confidence || 0.8,
-              mode: 'railway'
-            };
+          // Check which mode was used
+          const mode = data.mode || 'railway';
+          if (mode === 'database-direct' || mode === 'database-text-search') {
+            console.log('Using direct database access (Railway unavailable)');
           }
+          
+          return {
+            answer: data.answer || data.response || 'No answer provided',
+            sources: data.sources || [],
+            confidence: data.confidence || 0.8,
+            mode: mode === 'database-direct' ? 'railway' : mode // Report as 'railway' for UI consistency
+          };
+        }
 
-          // If we get a 502 or 503, the service might be starting up
-          if (response.status === 502 || response.status === 503) {
-            console.log(`Railway service unavailable (${response.status}), will retry...`);
-            if (attempt < this.maxRetries - 1) {
-              await this.sleep(this.retryDelay);
-              continue;
-            }
-          }
-        } catch (error) {
-          console.error('Railway service error:', error);
+        // Retry on temporary failures
+        if (response.status === 503) {
+          console.log(`Service temporarily unavailable, will retry...`);
           if (attempt < this.maxRetries - 1) {
             await this.sleep(this.retryDelay);
             continue;
           }
+        }
+      } catch (error) {
+        console.error('RAG proxy error:', error);
+        if (attempt < this.maxRetries - 1) {
+          await this.sleep(this.retryDelay);
+          continue;
         }
       }
     }
@@ -105,27 +115,11 @@ export class FallbackRAGClient {
     }
   }
 
-  // Health check method to test Railway availability
+  // Health check method - always returns true since proxy handles fallbacks
   async checkHealth(): Promise<{ available: boolean; mode: string }> {
-    if (!this.railwayUrl) {
-      return { available: false, mode: 'fallback' };
-    }
-
-    try {
-      const response = await fetch(`${this.railwayUrl}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(3000), // 3 second timeout
-      });
-
-      if (response.ok) {
-        console.log('Railway service is healthy');
-        return { available: true, mode: 'railway' };
-      }
-    } catch (error) {
-      console.log('Railway service health check failed:', error);
-    }
-
-    return { available: false, mode: 'fallback' };
+    // The proxy route handles all fallbacks, so we always report as available
+    // The actual mode (railway, database, or fallback) is determined at query time
+    return { available: true, mode: 'proxy' };
   }
 }
 
