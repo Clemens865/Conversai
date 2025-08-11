@@ -90,9 +90,16 @@ async fn main() -> anyhow::Result<()> {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::PUT, Method::DELETE])
-        .allow_headers(Any)
-        .expose_headers(Any)
-        .max_age(3600);
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT,
+            header::ORIGIN,
+            header::ACCESS_CONTROL_REQUEST_METHOD,
+            header::ACCESS_CONTROL_REQUEST_HEADERS,
+        ])
+        .expose_headers([header::CONTENT_TYPE])
+        .max_age(std::time::Duration::from_secs(3600));
 
     let app = Router::new()
         .route("/health", get(health_check))
