@@ -1,6 +1,6 @@
 use axum::{
-    http::{Method, header},
-    response::Json,
+    http::{Method, header, HeaderValue, StatusCode},
+    response::{Json, IntoResponse},
     routing::{get, post},
     Router,
 };
@@ -9,7 +9,7 @@ use serde_json::json;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::net::SocketAddr;
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tracing::{info, Level};
 use tracing_subscriber;
 
@@ -87,16 +87,20 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // Build our application with routes
+    // Proper CORS configuration for Vercel frontend
     let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods([Method::GET, Method::POST, Method::OPTIONS, Method::PUT, Method::DELETE])
+        // Allow specific origins (Vercel deployments)
+        .allow_origin([
+            "https://conversai-tau.vercel.app".parse::<HeaderValue>().unwrap(),
+            "https://conversai.vercel.app".parse::<HeaderValue>().unwrap(),
+            "http://localhost:3000".parse::<HeaderValue>().unwrap(),
+            "http://localhost:3001".parse::<HeaderValue>().unwrap(),
+        ])
+        .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
         .allow_headers([
             header::CONTENT_TYPE,
             header::AUTHORIZATION,
             header::ACCEPT,
-            header::ORIGIN,
-            header::ACCESS_CONTROL_REQUEST_METHOD,
-            header::ACCESS_CONTROL_REQUEST_HEADERS,
         ])
         .expose_headers([header::CONTENT_TYPE])
         .max_age(std::time::Duration::from_secs(3600));
@@ -104,13 +108,15 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(root_handler))
         .route("/health", get(health_check))
-        .route("/api/ingest", post(ingest::handle_ingest))
-        .route("/api/query", post(query::handle_query))
-        .route("/api/feedback", post(handlers::feedback::handle_feedback))
+        // Handle OPTIONS preflight requests explicitly
+        .route("/api/ingest", post(ingest::handle_ingest).options(handle_options))
+        .route("/api/query", post(query::handle_query).options(handle_options))
+        .route("/api/feedback", post(handlers::feedback::handle_feedback).options(handle_options))
         // Legacy routes for backward compatibility
-        .route("/ingest", post(ingest::handle_ingest))
-        .route("/query", post(query::handle_query))
-        .route("/feedback", post(handlers::feedback::handle_feedback))
+        .route("/ingest", post(ingest::handle_ingest).options(handle_options))
+        .route("/query", post(query::handle_query).options(handle_options))
+        .route("/feedback", post(handlers::feedback::handle_feedback).options(handle_options))
+        // Apply CORS layer BEFORE state (important for OPTIONS to work)
         .layer(cors)
         .with_state(pool);
 
@@ -171,4 +177,9 @@ async fn health_check() -> Json<serde_json::Value> {
         "mode": if db_connected { "full" } else { "health-check-only" },
         "timestamp": chrono::Utc::now().to_rfc3339()
     }))
+}
+
+// Quick OPTIONS handler for CORS preflight requests
+async fn handle_options() -> impl IntoResponse {
+    StatusCode::NO_CONTENT
 }
