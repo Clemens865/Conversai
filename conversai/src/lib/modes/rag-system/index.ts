@@ -10,7 +10,7 @@ export class RAGSystemMode implements ConversationMode {
   icon = '🚀';
   
   features = {
-    voiceProvider: 'Web Speech API',
+    voiceProvider: 'ElevenLabs TTS + Web Speech Recognition',
     aiModel: 'Rust RAG + Claude/GPT',
     memoryType: 'pgvector + Hybrid Search',
     privacy: 'Self-hosted'

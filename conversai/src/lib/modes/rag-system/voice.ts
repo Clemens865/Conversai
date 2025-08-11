@@ -1,15 +1,19 @@
 import { VoiceService } from './types';
+import { ElevenLabsService } from '../../services/voice/elevenlabs';
 
 class RAGVoiceService implements VoiceService {
   private recognition: any = null;
   private synthesis: SpeechSynthesis | null = null;
+  private elevenLabs: ElevenLabsService | null = null;
   private isListening = false;
   private onTranscriptCallback: ((text: string, isFinal: boolean) => void) | null = null;
+  private useElevenLabs = false;
+  private audioContext: AudioContext | null = null;
 
   async initialize(): Promise<void> {
     if (typeof window === 'undefined') return;
 
-    // Initialize Web Speech API
+    // Initialize Web Speech API for recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (SpeechRecognition) {
@@ -42,8 +46,18 @@ class RAGVoiceService implements VoiceService {
       };
     }
 
-    this.synthesis = window.speechSynthesis;
-    console.log('🎤 RAG Voice Service initialized (Web Speech API)');
+    // Initialize ElevenLabs for high-quality speech synthesis
+    const elevenLabsApiKey = process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY;
+    if (elevenLabsApiKey) {
+      this.elevenLabs = new ElevenLabsService(elevenLabsApiKey, 'rachel');
+      this.useElevenLabs = true;
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('🎤 RAG Voice Service initialized with ElevenLabs TTS');
+    } else {
+      // Fallback to Web Speech API for synthesis
+      this.synthesis = window.speechSynthesis;
+      console.log('🎤 RAG Voice Service initialized (Web Speech API)');
+    }
   }
 
   async startListening(onTranscript: (text: string, isFinal: boolean) => void): Promise<void> {
@@ -100,6 +114,32 @@ class RAGVoiceService implements VoiceService {
   }
 
   async speak(text: string): Promise<void> {
+    // Use ElevenLabs if available
+    if (this.useElevenLabs && this.elevenLabs && this.audioContext) {
+      try {
+        console.log('🔊 Using ElevenLabs for speech synthesis');
+        
+        // Generate speech audio from ElevenLabs
+        const audioData = await this.elevenLabs.generateSpeech(text);
+        
+        // Decode and play the audio
+        const audioBuffer = await this.audioContext.decodeAudioData(audioData);
+        const source = this.audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(this.audioContext.destination);
+        source.start(0);
+        
+        // Wait for the audio to finish playing
+        return new Promise((resolve) => {
+          source.onended = () => resolve();
+        });
+      } catch (error) {
+        console.error('ElevenLabs TTS failed, falling back to Web Speech API:', error);
+        // Fall through to Web Speech API
+      }
+    }
+
+    // Fallback to Web Speech API
     if (!this.synthesis) {
       console.warn('Speech synthesis not available');
       return;
@@ -133,6 +173,9 @@ class RAGVoiceService implements VoiceService {
     if (this.synthesis) {
       this.synthesis.cancel();
     }
+    if (this.audioContext) {
+      await this.audioContext.close();
+    }
   }
 
   private restart(): void {
@@ -151,8 +194,21 @@ class RAGVoiceService implements VoiceService {
     return !!(
       (typeof window !== 'undefined') &&
       ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) &&
-      window.speechSynthesis
+      (process.env.NEXT_PUBLIC_ELEVENLABS_API_KEY || window.speechSynthesis)
     );
+  }
+
+  // Method to change ElevenLabs voice
+  setVoice(voiceName: string): void {
+    if (this.elevenLabs) {
+      this.elevenLabs.setVoice(voiceName);
+      console.log(`🎤 Changed ElevenLabs voice to: ${voiceName}`);
+    }
+  }
+
+  // Get current TTS mode
+  getTTSMode(): string {
+    return this.useElevenLabs ? 'ElevenLabs' : 'Web Speech API';
   }
 }
 
