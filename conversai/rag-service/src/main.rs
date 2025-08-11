@@ -102,6 +102,7 @@ async fn main() -> anyhow::Result<()> {
         .max_age(std::time::Duration::from_secs(3600));
 
     let app = Router::new()
+        .route("/", get(root_handler))
         .route("/health", get(health_check))
         .route("/api/ingest", post(ingest::handle_ingest))
         .route("/api/query", post(query::handle_query))
@@ -140,6 +141,21 @@ async fn main() -> anyhow::Result<()> {
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+async fn root_handler() -> Json<serde_json::Value> {
+    Json(json!({
+        "name": "ConversAI RAG Service",
+        "status": "online",
+        "endpoints": {
+            "health": "/health",
+            "ingest": "/api/ingest",
+            "query": "/api/query",
+            "feedback": "/api/feedback"
+        },
+        "documentation": "https://github.com/yourusername/conversai",
+        "timestamp": chrono::Utc::now().to_rfc3339()
+    }))
 }
 
 async fn health_check() -> Json<serde_json::Value> {
